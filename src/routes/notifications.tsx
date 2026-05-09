@@ -65,7 +65,7 @@ function NotificationsPage() {
 
   const onOpen = (n: Notification) => {
     markNotifRead(n.id);
-    if (n.link) navigate({ to: n.link as "/" });
+    if (n.link) router.navigate({ to: n.link });
   };
 
   const Section = ({ title, items }: { title: string; items: Notification[] }) => {
