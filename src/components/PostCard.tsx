@@ -49,11 +49,18 @@ export function PostCard({ post }: { post: Post }) {
             </div>
           </div>
         </div>
-        {post.category && (
-          <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground">
-            {post.category}
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1">
+          {dist && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {dist}
+            </span>
+          )}
+          {post.category && (
+            <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground">
+              {post.category}
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Image */}
