@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { KeyboardAwareFocus } from "@/components/KeyboardAwareFocus";
 
 import appCss from "../styles.css?url";
 
