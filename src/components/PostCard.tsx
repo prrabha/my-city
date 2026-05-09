@@ -1,6 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Heart, Share2, MapPin, Bookmark, BadgeCheck } from "lucide-react";
-import { type Post, togglePostLike, togglePostSave, timeAgo } from "@/lib/store";
+import {
+  type Post,
+  togglePostLike,
+  togglePostSave,
+  timeAgo,
+  distanceLabel,
+  useUser,
+} from "@/lib/store";
 import { toast } from "sonner";
 
 export function PostCard({ post }: { post: Post }) {
