@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { Bell, Menu, UserCircle2, X } from "lucide-react";
 import { BottomBar } from "@/components/BottomBar";
 import { PostCard } from "@/components/PostCard";
-import { rankPostsForUser, usePosts, useUser, type Post } from "@/lib/store";
+import { LocationGate } from "@/components/LocationGate";
+import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from "@/lib/store";
 import catShop from "@/assets/cat-shop.png";
 import catHome from "@/assets/cat-home.png";
 import catJobs from "@/assets/cat-jobs.png";
@@ -45,10 +46,17 @@ function Home() {
   const user = useUser();
   const navigate = useNavigate();
   const posts = usePosts();
+  const unreadNotifs = useUnreadNotifs();
   const { cat } = Route.useSearch();
 
   useEffect(() => {
-    if (!user) navigate({ to: "/auth" });
+    if (typeof window !== "undefined" && !user) {
+      // only redirect after we've hydrated and confirmed no user
+      const t = setTimeout(() => {
+        if (!localStorage.getItem("loka:user")) navigate({ to: "/auth" });
+      }, 0);
+      return () => clearTimeout(t);
+    }
   }, [user, navigate]);
 
   const ranked = useMemo(() => rankPostsForUser(posts, user), [posts, user]);
@@ -62,6 +70,7 @@ function Home() {
 
   return (
     <div className="min-h-dvh bg-background pb-32">
+      <LocationGate />
       {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
@@ -72,13 +81,18 @@ function Home() {
             <UserCircle2 className="h-7 w-7" strokeWidth={1.75} />
           </button>
           <div className="flex items-center gap-1">
-            <button
+            <Link
+              to="/notifications"
               aria-label="Notifications"
               className="tap relative flex h-10 w-10 items-center justify-center rounded-full text-foreground"
             >
               <Bell className="h-6 w-6" strokeWidth={1.75} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-            </button>
+              {unreadNotifs > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground shadow-soft">
+                  {unreadNotifs > 9 ? "9+" : unreadNotifs}
+                </span>
+              )}
+            </Link>
             <button
               aria-label="Menu"
               className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
