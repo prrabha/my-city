@@ -77,6 +77,7 @@ export type Chat = {
 const KEY_USER = "loka:user";
 const KEY_POSTS = "loka:posts";
 const KEY_CHATS = "loka:chats";
+const KEY_NOTIFS = "loka:notifs";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
