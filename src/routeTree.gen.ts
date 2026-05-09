@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -20,6 +21,11 @@ import { Route as InboxChatIdRouteImport } from './routes/inbox.$chatId'
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/notifications': typeof NotificationsRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/notifications': typeof NotificationsRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/notifications': typeof NotificationsRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/notifications'
     | '/search'
     | '/inbox/$chatId'
     | '/post/$postId'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/notifications'
     | '/search'
     | '/inbox/$chatId'
     | '/post/$postId'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/notifications'
     | '/search'
     | '/inbox/$chatId'
     | '/post/$postId'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
+  NotificationsRoute: typeof NotificationsRoute
   SearchRoute: typeof SearchRoute
   InboxChatIdRoute: typeof InboxChatIdRoute
   PostPostIdRoute: typeof PostPostIdRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
+  NotificationsRoute: NotificationsRoute,
   SearchRoute: SearchRoute,
   InboxChatIdRoute: InboxChatIdRoute,
   PostPostIdRoute: PostPostIdRoute,
@@ -187,3 +208,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
