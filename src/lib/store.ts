@@ -27,6 +27,8 @@ export type User = {
   cityId: string;
   mobile: string;
   verified?: boolean;
+  area?: string; // locality, e.g. "Wyra"
+  locationGranted?: boolean;
 };
 
 export type Post = {
@@ -35,6 +37,7 @@ export type Post = {
   authorMobile: string;
   cityId: string;
   cityLabel: string;
+  area?: string;
   image: string;
   caption: string;
   category?: string;
@@ -42,6 +45,17 @@ export type Post = {
   likes: number;
   liked?: boolean;
   saved?: boolean;
+};
+
+export type Notification = {
+  id: string;
+  type: "nearby" | "job" | "rent" | "message" | "activity";
+  title: string;
+  body: string;
+  ts: number;
+  read: boolean;
+  link?: string; // app path to open
+  image?: string;
 };
 
 export type ChatMessage = {
