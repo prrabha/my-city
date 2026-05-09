@@ -46,10 +46,17 @@ function Home() {
   const user = useUser();
   const navigate = useNavigate();
   const posts = usePosts();
+  const unreadNotifs = useUnreadNotifs();
   const { cat } = Route.useSearch();
 
   useEffect(() => {
-    if (!user) navigate({ to: "/auth" });
+    if (typeof window !== "undefined" && !user) {
+      // only redirect after we've hydrated and confirmed no user
+      const t = setTimeout(() => {
+        if (!localStorage.getItem("loka:user")) navigate({ to: "/auth" });
+      }, 0);
+      return () => clearTimeout(t);
+    }
   }, [user, navigate]);
 
   const ranked = useMemo(() => rankPostsForUser(posts, user), [posts, user]);
