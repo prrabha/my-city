@@ -44,7 +44,7 @@ function iconFor(type: Notification["type"]) {
 }
 
 function NotificationsPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const list = useNotifs();
   const { fresh, older } = useMemo(() => {
     const day = 1000 * 60 * 60 * 24;
