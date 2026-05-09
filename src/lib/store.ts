@@ -258,10 +258,12 @@ export function cityLabel(cityId: string): string {
   return CITIES.find((c) => c.id === cityId)?.name ?? cityId;
 }
 
-// React hooks
+// React hooks — initialize empty/null on first render so SSR & client match,
+// then hydrate from localStorage inside an effect.
 export function useUser() {
-  const [user, set] = useState<User | null>(() => getUser());
+  const [user, set] = useState<User | null>(null);
   useEffect(() => {
+    set(getUser());
     const fn = () => set(getUser());
     window.addEventListener("loka:user", fn);
     return () => window.removeEventListener("loka:user", fn);
@@ -270,8 +272,9 @@ export function useUser() {
 }
 
 export function usePosts() {
-  const [posts, set] = useState<Post[]>(() => getPosts());
+  const [posts, set] = useState<Post[]>([]);
   useEffect(() => {
+    set(getPosts());
     const fn = () => set(getPosts());
     window.addEventListener("loka:posts", fn);
     return () => window.removeEventListener("loka:posts", fn);
@@ -280,8 +283,9 @@ export function usePosts() {
 }
 
 export function useChats() {
-  const [chats, set] = useState<Chat[]>(() => getChats());
+  const [chats, set] = useState<Chat[]>([]);
   useEffect(() => {
+    set(getChats());
     const fn = () => set(getChats());
     window.addEventListener("loka:chats", fn);
     return () => window.removeEventListener("loka:chats", fn);
@@ -294,15 +298,98 @@ export function useUnread() {
   return chats.reduce((acc, c) => acc + c.unread, 0);
 }
 
+// ---------- Notifications ----------
+const SEED_NOTIFS: Notification[] = [
+  {
+    id: "n1",
+    type: "message",
+    title: "Sai Teja sent you a message",
+    body: "Can I see it tomorrow evening?",
+    ts: Date.now() - 1000 * 60 * 9,
+    read: false,
+    link: "/inbox",
+  },
+  {
+    id: "n2",
+    type: "rent",
+    title: "New rent home near you",
+    body: "Single room ₹4,500/month — Wyra, Khammam",
+    ts: Date.now() - 1000 * 60 * 60 * 2,
+    read: false,
+    link: "/?cat=home",
+  },
+  {
+    id: "n3",
+    type: "nearby",
+    title: "Fresh post in your city",
+    body: "Wholesale vegetables near bus stand",
+    ts: Date.now() - 1000 * 60 * 60 * 8,
+    read: true,
+    link: "/",
+  },
+];
+
+export function getNotifs(): Notification[] {
+  const stored = read<Notification[] | null>(KEY_NOTIFS, null);
+  if (stored) return stored;
+  write(KEY_NOTIFS, SEED_NOTIFS);
+  return SEED_NOTIFS;
+}
+function saveNotifs(list: Notification[]) {
+  write(KEY_NOTIFS, list);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("loka:notifs"));
+}
+export function pushNotif(n: Omit<Notification, "id" | "ts" | "read">) {
+  const full: Notification = { id: `n_${Date.now()}`, ts: Date.now(), read: false, ...n };
+  saveNotifs([full, ...getNotifs()].slice(0, 100));
+}
+export function markNotifRead(id: string) {
+  saveNotifs(getNotifs().map((n) => (n.id === id ? { ...n, read: true } : n)));
+}
+export function markAllNotifsRead() {
+  saveNotifs(getNotifs().map((n) => ({ ...n, read: true })));
+}
+export function useNotifs() {
+  const [list, set] = useState<Notification[]>([]);
+  useEffect(() => {
+    set(getNotifs());
+    const fn = () => set(getNotifs());
+    window.addEventListener("loka:notifs", fn);
+    return () => window.removeEventListener("loka:notifs", fn);
+  }, []);
+  return list;
+}
+export function useUnreadNotifs() {
+  return useNotifs().filter((n) => !n.read).length;
+}
+
+// ---------- Ranking with area awareness ----------
 export function rankPostsForUser<T extends Post>(posts: T[], user: User | null): T[] {
   if (!user) return posts;
   const city = CITIES.find((c) => c.id === user.cityId);
+  const userArea = (user.area ?? "").toLowerCase();
   const score = (p: T) => {
-    if (p.cityId === user.cityId) return 0;
-    if (city?.nearby.some((n) => p.cityLabel.includes(n))) return 1;
-    return 2;
+    const label = p.cityLabel.toLowerCase();
+    const area = (p.area ?? "").toLowerCase();
+    if (userArea && (area === userArea || label.includes(userArea))) return 0;
+    if (p.cityId === user.cityId) return 1;
+    if (city?.nearby.some((n) => p.cityLabel.includes(n))) return 2;
+    return 3;
   };
   return [...posts].sort((a, b) => score(a) - score(b) || b.createdAt - a.createdAt);
+}
+
+export function distanceLabel(p: Post, user: User | null): string {
+  if (!user) return "";
+  const userArea = (user.area ?? "").toLowerCase();
+  const area = (p.area ?? "").toLowerCase();
+  if (userArea && (area === userArea || p.cityLabel.toLowerCase().includes(userArea))) {
+    return "Near you";
+  }
+  if (p.cityId === user.cityId) return "In your city";
+  const city = CITIES.find((c) => c.id === user.cityId);
+  if (city?.nearby.some((n) => p.cityLabel.includes(n))) return "Nearby town";
+  return "";
 }
 
 export function timeAgo(ts: number): string {
