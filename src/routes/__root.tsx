@@ -78,6 +78,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <>
+      <KeyboardAwareFocus />
       <Outlet />
       <Toaster position="top-center" />
     </>
