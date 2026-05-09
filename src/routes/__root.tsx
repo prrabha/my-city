@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { KeyboardAwareFocus } from "@/components/KeyboardAwareFocus";
 
 import appCss from "../styles.css?url";
 
@@ -77,6 +78,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <>
+      <KeyboardAwareFocus />
       <Outlet />
       <Toaster position="top-center" />
     </>
