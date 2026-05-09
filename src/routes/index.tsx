@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { Bell, Menu, UserCircle2, X } from "lucide-react";
 import { BottomBar } from "@/components/BottomBar";
 import { PostCard } from "@/components/PostCard";
-import { rankPostsForUser, usePosts, useUser, type Post } from "@/lib/store";
+import { LocationGate } from "@/components/LocationGate";
+import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from "@/lib/store";
 import catShop from "@/assets/cat-shop.png";
 import catHome from "@/assets/cat-home.png";
 import catJobs from "@/assets/cat-jobs.png";
