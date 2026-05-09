@@ -11,6 +11,8 @@ import {
 import { toast } from "sonner";
 
 export function PostCard({ post }: { post: Post }) {
+  const user = useUser();
+  const dist = distanceLabel(post, user);
   const onShare = async (e: React.MouseEvent) => {
     e.preventDefault();
     const url = `${window.location.origin}/post/${post.id}`;
