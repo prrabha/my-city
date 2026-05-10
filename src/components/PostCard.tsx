@@ -65,17 +65,12 @@ export function PostCard({ post }: { post: Post }) {
         </div>
       </header>
 
-      {/* Image */}
-      <Link to="/post/$postId" params={{ postId: post.id }} className="mt-3 block">
-        <div className="aspect-square w-full overflow-hidden bg-muted">
-          <img
-            src={post.image}
-            alt={post.caption}
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        </div>
-      </Link>
+      {/* Images */}
+      <div className="mt-3 block">
+        <Link to="/post/$postId" params={{ postId: post.id }} aria-label="Open post" className="block">
+          <ImageCarousel images={postImages(post)} alt={post.caption} />
+        </Link>
+      </div>
 
       {/* Actions */}
       <div className="flex items-center justify-between px-4 pt-3">
