@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Heart, Share2 } from "lucide-react";
+import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Heart, Share2, Map as MapIcon } from "lucide-react";
 import {
   startChatWith,
   togglePostLike,
   usePosts,
   timeAgo,
+  postImages,
 } from "@/lib/store";
+import { ImageCarousel } from "@/components/ImageCarousel";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/post/$postId")({
