@@ -41,9 +41,9 @@ function haversineKm(a: [number, number], b: [number, number]) {
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
-type Props = { pin: GeoPin; height?: number; showRoute?: boolean };
+export type PostMapInnerProps = { pin: GeoPin; height?: number; showRoute?: boolean };
 
-export function PostMap({ pin, height = 360, showRoute = true }: Props) {
+export function PostMapInner({ pin, height = 360, showRoute = true }: PostMapInnerProps) {
   const [mounted, setMounted] = useState(false);
   const [me, setMe] = useState<[number, number] | null>(null);
 
