@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Heart, Share2 } from "lucide-react";
+import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Heart, Share2, Map as MapIcon } from "lucide-react";
 import {
   startChatWith,
   togglePostLike,
   usePosts,
   timeAgo,
+  postImages,
 } from "@/lib/store";
+import { ImageCarousel } from "@/components/ImageCarousel";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/post/$postId")({
@@ -72,7 +74,7 @@ function PostDetail() {
       </header>
 
       <main className="mx-auto max-w-xl">
-        <img src={post.image} alt={post.caption} className="aspect-square w-full object-cover" />
+        <ImageCarousel images={postImages(post)} alt={post.caption} />
 
         <section className="px-5 pt-4">
           <div className="flex items-center gap-3">
@@ -108,6 +110,41 @@ function PostDetail() {
           <p className="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">
             {post.caption}
           </p>
+
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {post.hashtags.map((h) => (
+                <span
+                  key={h}
+                  className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
+                >
+                  #{h}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {post.geo && (
+            <Link
+              to="/post/$postId/map"
+              params={{ postId: post.id }}
+              className="tap mt-5 flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-soft"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <MapIcon className="h-5 w-5" />
+                </div>
+                <div className="leading-tight">
+                  <div className="text-sm font-semibold">Open map</div>
+                  <div className="text-xs text-muted-foreground">
+                    {post.geo.area ? `${post.geo.area}, ` : ""}
+                    {post.geo.city ?? post.cityLabel}
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-medium text-primary">View →</span>
+            </Link>
+          )}
         </section>
       </main>
 

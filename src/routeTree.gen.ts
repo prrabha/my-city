@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as InboxIndexRouteImport } from './routes/inbox.index'
 import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 import { Route as InboxChatIdRouteImport } from './routes/inbox.$chatId'
+import { Route as PostPostIdMapRouteImport } from './routes/post.$postId.map'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -58,6 +59,11 @@ const InboxChatIdRoute = InboxChatIdRouteImport.update({
   path: '/inbox/$chatId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostPostIdMapRoute = PostPostIdMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => PostPostIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,8 +72,9 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
-  '/post/$postId': typeof PostPostIdRoute
+  '/post/$postId': typeof PostPostIdRouteWithChildren
   '/inbox/': typeof InboxIndexRoute
+  '/post/$postId/map': typeof PostPostIdMapRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -76,8 +83,9 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
-  '/post/$postId': typeof PostPostIdRoute
+  '/post/$postId': typeof PostPostIdRouteWithChildren
   '/inbox': typeof InboxIndexRoute
+  '/post/$postId/map': typeof PostPostIdMapRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -87,8 +95,9 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
-  '/post/$postId': typeof PostPostIdRoute
+  '/post/$postId': typeof PostPostIdRouteWithChildren
   '/inbox/': typeof InboxIndexRoute
+  '/post/$postId/map': typeof PostPostIdMapRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/inbox/$chatId'
     | '/post/$postId'
     | '/inbox/'
+    | '/post/$postId/map'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/inbox/$chatId'
     | '/post/$postId'
     | '/inbox'
+    | '/post/$postId/map'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/inbox/$chatId'
     | '/post/$postId'
     | '/inbox/'
+    | '/post/$postId/map'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -130,7 +142,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   SearchRoute: typeof SearchRoute
   InboxChatIdRoute: typeof InboxChatIdRoute
-  PostPostIdRoute: typeof PostPostIdRoute
+  PostPostIdRoute: typeof PostPostIdRouteWithChildren
   InboxIndexRoute: typeof InboxIndexRoute
 }
 
@@ -192,8 +204,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InboxChatIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/post/$postId/map': {
+      id: '/post/$postId/map'
+      path: '/map'
+      fullPath: '/post/$postId/map'
+      preLoaderRoute: typeof PostPostIdMapRouteImport
+      parentRoute: typeof PostPostIdRoute
+    }
   }
 }
+
+interface PostPostIdRouteChildren {
+  PostPostIdMapRoute: typeof PostPostIdMapRoute
+}
+
+const PostPostIdRouteChildren: PostPostIdRouteChildren = {
+  PostPostIdMapRoute: PostPostIdMapRoute,
+}
+
+const PostPostIdRouteWithChildren = PostPostIdRoute._addFileChildren(
+  PostPostIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -202,7 +233,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   SearchRoute: SearchRoute,
   InboxChatIdRoute: InboxChatIdRoute,
-  PostPostIdRoute: PostPostIdRoute,
+  PostPostIdRoute: PostPostIdRouteWithChildren,
   InboxIndexRoute: InboxIndexRoute,
 }
 export const routeTree = rootRouteImport

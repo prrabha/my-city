@@ -209,3 +209,11 @@
     opacity: 0.85;
   }
 }
+
+
+/* Leaflet base styles (imported once globally) */
+@import "leaflet/dist/leaflet.css";
+
+/* Hide horizontal scrollbar on image carousels */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
