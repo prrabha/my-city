@@ -7,8 +7,10 @@ import {
   timeAgo,
   distanceLabel,
   useUser,
+  postImages,
 } from "@/lib/store";
 import { toast } from "sonner";
+import { ImageCarousel } from "@/components/ImageCarousel";
 
 export function PostCard({ post }: { post: Post }) {
   const user = useUser();
