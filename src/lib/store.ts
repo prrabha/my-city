@@ -31,6 +31,14 @@ export type User = {
   locationGranted?: boolean;
 };
 
+export type GeoPin = {
+  lat: number;
+  lng: number;
+  city?: string;
+  area?: string;
+  state?: string;
+};
+
 export type Post = {
   id: string;
   authorName: string;
@@ -38,14 +46,22 @@ export type Post = {
   cityId: string;
   cityLabel: string;
   area?: string;
-  image: string;
+  image: string; // primary/cover image (kept for back-compat)
+  images?: string[]; // optional multi-image gallery
   caption: string;
+  hashtags?: string[];
   category?: string;
   createdAt: number;
   likes: number;
   liked?: boolean;
   saved?: boolean;
+  geo?: GeoPin;
 };
+
+export function postImages(p: Post): string[] {
+  if (p.images && p.images.length) return p.images;
+  return [p.image];
+}
 
 export type Notification = {
   id: string;
