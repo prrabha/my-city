@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import type { GeoPin } from "@/lib/store";
-import type { MapPickerInnerProps } from "./MapPicker.client";
+import type { MapPickerInnerProps } from "./MapPickerInner";
 
 const Inner = lazy(async () => {
-  const m = await import("./MapPicker.client");
+  const m = await import("./MapPickerInner");
   return { default: m.MapPickerInner as ComponentType<MapPickerInnerProps> };
 });
 
