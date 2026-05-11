@@ -14,7 +14,6 @@ function ChatPage() {
   const navigate = useNavigate();
   const chats = useChats();
   const chat = chats.find((c) => c.id === chatId);
-  const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
