@@ -89,6 +89,8 @@ function ChatPage() {
             </div>
           ))}
         </div>
+      </div>
+
       {/* Spacer so messages aren't covered by fixed composer */}
       <div aria-hidden className="h-24" />
 
