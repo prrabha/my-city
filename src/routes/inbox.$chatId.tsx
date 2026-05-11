@@ -89,27 +89,19 @@ function ChatPage() {
             </div>
           ))}
         </div>
-      </div>
+      {/* Spacer so messages aren't covered by fixed composer */}
+      <div aria-hidden className="h-24" />
 
-      <div className="sticky bottom-0 border-t border-border/60 bg-background/85 px-3 py-2 backdrop-blur-xl safe-bottom">
-        <div className="mx-auto flex max-w-xl items-center gap-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Message…"
-            className="h-11 flex-1 rounded-full bg-secondary px-4 text-sm focus:outline-none"
-          />
-          <button
-            onClick={send}
-            disabled={!text.trim()}
-            aria-label="Send"
-            className="tap flex h-11 w-11 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-40"
-          >
-            <ArrowUp className="h-5 w-5" strokeWidth={2.5} />
-          </button>
-        </div>
-      </div>
+      <ChatInputBar
+        placeholder="Message…"
+        onSend={({ text, attachments, voice }) => {
+          if (text) send(text);
+          if (attachments.length) {
+            send(attachments.map((a) => `📎 ${a.file.name}`).join("\n"));
+          }
+          if (voice) send("🎤 Voice message");
+        }}
+      />
     </div>
   );
 }
