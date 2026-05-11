@@ -37,11 +37,10 @@ function ChatPage() {
     );
   }
 
-  const send = () => {
-    const v = text.trim();
-    if (!v) return;
-    sendMessage(chat.id, v);
-    setText("");
+  const send = (v: string) => {
+    const t = v.trim();
+    if (!t) return;
+    sendMessage(chat.id, t);
   };
 
   return (
