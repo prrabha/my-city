@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowUp, Phone } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ArrowLeft, Phone } from "lucide-react";
 import { markChatRead, sendMessage, useChats } from "@/lib/store";
+import { ChatInputBar } from "@/components/ChatInputBar";
 
 export const Route = createFileRoute("/inbox/$chatId")({
   head: () => ({ meta: [{ title: "Chat — Loka" }] }),
