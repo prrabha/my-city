@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import type { GeoPin } from "@/lib/store";
-import type { PostMapInnerProps } from "./PostMap.client";
+import type { PostMapInnerProps } from "./PostMapInner";
 
 const Inner = lazy(async () => {
-  const m = await import("./PostMap.client");
+  const m = await import("./PostMapInner");
   return { default: m.PostMapInner as ComponentType<PostMapInnerProps> };
 });
 
