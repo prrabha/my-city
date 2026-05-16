@@ -110,11 +110,26 @@ export function smartSearch(posts: Post[], raw: string, user: User | null): {
 
   const tokens = parsed.text.split(/\s+/).filter((t) => t && t.length > 1);
 
-  const scored = posts
+  // Helper: does a post match the detected category?
+  const matchesCategory = (p: Post): boolean => {
+    if (!parsed.category) return true;
+    const catWords = SYNONYMS[parsed.category] ?? [];
+    const hay = `${p.category ?? ""} ${p.caption} ${(p.hashtags ?? []).join(" ")}`.toLowerCase();
+    return catWords.some((w) => hay.includes(w));
+  };
+
+  // Hard-filter pool: when user explicitly states a city or category (or
+  // "near me"), only consider posts that match those constraints. This stops
+  // other cities / other categories from leaking into results.
+  const pool = posts.filter((p) => {
+    const cityOk = effectiveCityId ? p.cityId === effectiveCityId : true;
+    const catOk = matchesCategory(p);
+    return cityOk && catOk;
+  });
+
+  const scored = pool
     .map((p) => {
-      const tags = Array.isArray((p as unknown as { hashtags?: string[] }).hashtags)
-        ? (p as unknown as { hashtags: string[] }).hashtags.join(" ")
-        : "";
+      const tags = Array.isArray(p.hashtags) ? p.hashtags.join(" ") : "";
       const hay = `${p.caption} ${p.category ?? ""} ${p.authorName} ${p.cityLabel} ${p.area ?? ""} ${tags}`.toLowerCase();
       let score = 0;
 
@@ -125,37 +140,33 @@ export function smartSearch(posts: Post[], raw: string, user: User | null): {
       for (const tok of tokens) {
         if (hay.includes(tok)) score += 2;
       }
-      if (parsed.category && p.category) {
-        const catWords = SYNONYMS[parsed.category] ?? [];
-        if (catWords.some((w) => p.category!.toLowerCase().includes(w))) score += 6;
-      }
+      if (parsed.category) score += 6; // already passed category gate
       if (effectiveCityId && p.cityId === effectiveCityId) score += 5;
       if (parsed.nearMe && user?.area && (p.area ?? "").toLowerCase() === user.area.toLowerCase()) {
         score += 4;
       }
-      if (score === 0 && parsed.text && hay.includes(parsed.text)) score += 2;
+      // Recency tiebreaker
+      score += Math.min(2, (Date.now() - p.createdAt) < 1000 * 60 * 60 * 24 * 7 ? 1 : 0);
 
       return { p, score };
     })
-    .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
     .map((x) => x.p);
 
   let results = scored;
+
+  // If a category+city query yields nothing, keep the strict pool (city+cat)
+  // ordered by recency rather than falling back to unrelated posts.
   if (!results.length && (effectiveCityId || parsed.category)) {
-    results = rankPostsForUser(
-      posts.filter((p) => {
-        const cityOk = effectiveCityId ? p.cityId === effectiveCityId : true;
-        const catOk = parsed.category
-          ? (SYNONYMS[parsed.category] ?? []).some((w) =>
-              (p.category ?? "").toLowerCase().includes(w) ||
-              p.caption.toLowerCase().includes(w),
-            )
-          : true;
-        return cityOk && catOk;
-      }),
-      user,
-    );
+    results = rankPostsForUser(pool, user);
+  }
+
+  // Pure free-text query (no city, no category): fall back to loose keyword scan
+  if (!results.length && !effectiveCityId && !parsed.category && parsed.text) {
+    results = posts.filter((p) => {
+      const hay = `${p.caption} ${p.category ?? ""} ${p.cityLabel} ${p.area ?? ""} ${(p.hashtags ?? []).join(" ")}`.toLowerCase();
+      return tokens.some((t) => hay.includes(t)) || hay.includes(parsed.text);
+    });
   }
 
   return { parsed, results };
