@@ -29,16 +29,16 @@ export function ImageCarousel({ images, alt = "", className = "", rounded = fals
     <div className={`relative w-full ${className}`}>
       <div
         ref={ref}
-        className={`no-scrollbar flex aspect-square w-full snap-x snap-mandatory overflow-x-auto bg-muted ${rounded ? "rounded-3xl" : ""}`}
+        className={`no-scrollbar flex aspect-[4/5] w-full snap-x snap-mandatory overflow-x-auto bg-black ${rounded ? "rounded-3xl" : ""}`}
       >
         {images.map((src, i) => (
-          <div key={i} className="relative h-full w-full flex-shrink-0 snap-center">
+          <div key={i} className="relative h-full w-full flex-shrink-0 snap-center bg-black">
             <img
               src={src}
               alt={`${alt} ${i + 1}`}
               loading={i === 0 ? "eager" : "lazy"}
               draggable={false}
-              className="h-full w-full select-none object-cover"
+              className="h-full w-full select-none object-contain"
             />
           </div>
         ))}
