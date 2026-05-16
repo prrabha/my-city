@@ -108,31 +108,31 @@ export function smartSearch(posts: Post[], raw: string, user: User | null): {
   // Effective city: explicit city > near-me/user city
   const effectiveCityId = parsed.cityId ?? (parsed.nearMe ? user?.cityId : undefined);
 
+  const tokens = parsed.text.split(/\s+/).filter((t) => t && t.length > 1);
+
   const scored = posts
     .map((p) => {
-      const hay = `${p.caption} ${p.category ?? ""} ${p.authorName} ${p.cityLabel} ${p.area ?? ""}`.toLowerCase();
+      const tags = Array.isArray((p as unknown as { hashtags?: string[] }).hashtags)
+        ? (p as unknown as { hashtags: string[] }).hashtags.join(" ")
+        : "";
+      const hay = `${p.caption} ${p.category ?? ""} ${p.authorName} ${p.cityLabel} ${p.area ?? ""} ${tags}`.toLowerCase();
       let score = 0;
 
-      // Keyword hits
       for (const kw of parsed.keywords) {
         if (!kw) continue;
         if (hay.includes(kw)) score += kw.length > 3 ? 3 : 1;
       }
-      // Category boost
+      for (const tok of tokens) {
+        if (hay.includes(tok)) score += 2;
+      }
       if (parsed.category && p.category) {
         const catWords = SYNONYMS[parsed.category] ?? [];
         if (catWords.some((w) => p.category!.toLowerCase().includes(w))) score += 6;
       }
-      // City match
       if (effectiveCityId && p.cityId === effectiveCityId) score += 5;
-      else if (effectiveCityId) score -= 2;
-
-      // Near-me area boost
       if (parsed.nearMe && user?.area && (p.area ?? "").toLowerCase() === user.area.toLowerCase()) {
         score += 4;
       }
-
-      // Fallback: raw substring of trimmed text
       if (score === 0 && parsed.text && hay.includes(parsed.text)) score += 2;
 
       return { p, score };
@@ -141,11 +141,22 @@ export function smartSearch(posts: Post[], raw: string, user: User | null): {
     .sort((a, b) => b.score - a.score)
     .map((x) => x.p);
 
-  // If a city was specified but nothing scored, fall back to ranked feed for that city
-  const results = scored.length ? scored : rankPostsForUser(
-    posts.filter((p) => !effectiveCityId || p.cityId === effectiveCityId),
-    user,
-  ).slice(0, 0); // empty when nothing — caller shows empty state
+  let results = scored;
+  if (!results.length && (effectiveCityId || parsed.category)) {
+    results = rankPostsForUser(
+      posts.filter((p) => {
+        const cityOk = effectiveCityId ? p.cityId === effectiveCityId : true;
+        const catOk = parsed.category
+          ? (SYNONYMS[parsed.category] ?? []).some((w) =>
+              (p.category ?? "").toLowerCase().includes(w) ||
+              p.caption.toLowerCase().includes(w),
+            )
+          : true;
+        return cityOk && catOk;
+      }),
+      user,
+    );
+  }
 
   return { parsed, results };
 }
