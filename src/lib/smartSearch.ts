@@ -5,14 +5,16 @@ import { CITIES, type Post, type User, rankPostsForUser } from "./store";
 // Synonym groups → expand any word to its related terms.
 // Each key is the canonical category; values are matchable keywords / SEO terms.
 const SYNONYMS: Record<string, string[]> = {
-  jobs: ["job", "jobs", "vacancy", "vacancies", "hiring", "hire", "work", "employment", "career", "careers", "opening", "openings", "recruitment"],
-  rent_home: ["rent", "rental", "home", "homes", "house", "houses", "flat", "flats", "apartment", "apartments", "pg", "room", "rooms", "1bhk", "2bhk", "3bhk"],
-  rent_shop: ["shop", "shops", "commercial", "store", "stores", "showroom", "office", "lease"],
-  property: ["land", "lands", "plot", "plots", "open plot", "real estate", "property", "properties", "site", "sites", "acre", "acres"],
-  vehicle: ["bike", "bikes", "scooter", "car", "cars", "vehicle", "vehicles", "auto", "activa", "honda", "yamaha"],
-  service: ["plumber", "electrician", "carpenter", "mechanic", "service", "services", "repair", "technician"],
-  food: ["food", "restaurant", "biryani", "chicken", "tiffin", "meals", "delivery", "broast"],
-  offers: ["offer", "offers", "discount", "sale", "deal", "deals", "combo"],
+  jobs: ["job", "jobs", "vacancy", "vacancies", "hiring", "hire", "work", "employment", "career", "careers", "opening", "openings", "recruitment", "salary", "wanted", "staff", "intern", "internship", "freshers", "part time", "full time"],
+  rent_home: ["rent", "rental", "home", "homes", "house", "houses", "flat", "flats", "apartment", "apartments", "pg", "room", "rooms", "1bhk", "2bhk", "3bhk", "studio", "hostel", "lease", "bachelor", "family"],
+  rent_shop: ["shop", "shops", "commercial", "store", "stores", "showroom", "office", "godown", "warehouse", "kirana", "stall"],
+  property: ["land", "lands", "plot", "plots", "open plot", "real estate", "property", "properties", "site", "sites", "acre", "acres", "villa", "farmhouse", "agriculture"],
+  vehicle: ["bike", "bikes", "scooter", "scooty", "car", "cars", "vehicle", "vehicles", "auto", "activa", "honda", "yamaha", "bajaj", "suzuki", "hero", "royal enfield", "bullet", "second hand", "used"],
+  service: ["plumber", "electrician", "carpenter", "mechanic", "service", "services", "repair", "technician", "tutor", "tuition", "maid", "cook", "driver", "painter", "cleaning"],
+  food: ["food", "restaurant", "biryani", "chicken", "tiffin", "meals", "delivery", "broast", "cafe", "tea", "snacks", "catering", "bakery", "cake"],
+  offers: ["offer", "offers", "discount", "sale", "deal", "deals", "combo", "free", "buy one"],
+  electronics: ["mobile", "phone", "iphone", "samsung", "laptop", "tv", "fridge", "ac", "washing machine", "electronics", "headphone", "speaker"],
+  furniture: ["furniture", "sofa", "bed", "table", "chair", "wardrobe", "almirah", "cot"],
 };
 
 const NEAR_ME_RE = /\b(near\s*me|nearby|around\s*me|close\s*by|in\s*my\s*area)\b/i;
