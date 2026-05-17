@@ -49,7 +49,7 @@ function ChatPage() {
         <button
           onClick={() => navigate({ to: "/inbox" })}
           aria-label="Back"
-          className="tap flex h-10 w-10 items-center justify-center rounded-full bg-secondary"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -63,7 +63,7 @@ function ChatPage() {
         <a
           href="tel:+919000000000"
           aria-label="Call"
-          className="tap flex h-10 w-10 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
         >
           <Phone className="h-5 w-5" />
         </a>
