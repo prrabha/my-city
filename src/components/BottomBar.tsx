@@ -38,7 +38,7 @@ export function BottomBar() {
           <SheetTrigger asChild>
             <button
               aria-label="Create post"
-              className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow"
+              className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-foreground"
             >
               <Plus className="h-5 w-5" strokeWidth={2.5} />
             </button>
@@ -93,7 +93,7 @@ export function BottomBar() {
           <button
             type="submit"
             aria-label="Search"
-            className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-40"
+            className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground disabled:opacity-40"
             disabled={!q.trim()}
           >
             <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
@@ -105,7 +105,7 @@ export function BottomBar() {
           to="/inbox"
           aria-label="Inbox"
           className={`tap relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-            inboxActive ? "bg-gradient-primary text-primary-foreground" : "bg-secondary text-foreground"
+            inboxActive ? "text-primary" : "text-foreground"
           }`}
         >
           <MessageCircle className="h-5 w-5" />

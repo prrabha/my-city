@@ -46,7 +46,7 @@ function SearchPage() {
           <button
             onClick={() => navigate({ to: "/" })}
             aria-label="Back"
-            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-secondary"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -69,7 +69,7 @@ function SearchPage() {
             <button
               type="submit"
               aria-label="Search"
-              className="tap flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground"
+              className="tap flex h-9 w-9 items-center justify-center rounded-full text-foreground"
             >
               <SearchIcon className="h-4 w-4" />
             </button>
