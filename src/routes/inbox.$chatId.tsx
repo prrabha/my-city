@@ -45,7 +45,7 @@ function ChatPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-gradient-warm">
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border/60 bg-background/85 px-3 py-2.5 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 flex items-center gap-3 px-3 py-2.5">
         <button
           onClick={() => navigate({ to: "/inbox" })}
           aria-label="Back"

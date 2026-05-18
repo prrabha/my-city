@@ -72,7 +72,7 @@ function Home() {
     <div className="min-h-dvh bg-background pb-32">
       <LocationGate />
       {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-30">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <button
             aria-label="Profile"

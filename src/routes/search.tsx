@@ -41,7 +41,7 @@ function SearchPage() {
 
   return (
     <div className="min-h-dvh bg-gradient-warm pb-32">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-30">
         <div className="mx-auto flex max-w-xl items-center gap-2 px-3 py-3">
           <button
             onClick={() => navigate({ to: "/" })}
