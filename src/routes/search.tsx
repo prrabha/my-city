@@ -15,10 +15,23 @@ export const Route = createFileRoute("/search")({
 function SearchPage() {
   const { q } = Route.useSearch();
   const navigate = useNavigate();
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(q);
   const [debounced, setDebounced] = useState(q);
   const posts = usePosts();
   const user = useUser();
+
+  // Keep query in sync if URL q changes (e.g. from BottomBar submit while on /search)
+  useEffect(() => {
+    setQuery(q);
+    setDebounced(q);
+  }, [q]);
+
+  const goBack = () => {
+    if (window.history.length > 1) router.history.back();
+    else navigate({ to: "/" });
+  };
 
   // Debounce input for smooth typing
   useEffect(() => {
