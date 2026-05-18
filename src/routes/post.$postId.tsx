@@ -55,7 +55,7 @@ function PostDetail() {
 
   return (
     <div className="min-h-dvh bg-background pb-28">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/85 px-3 py-3 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 flex items-center justify-between px-3 py-3">
         <button
           onClick={() => history.length > 1 ? history.back() : navigate({ to: "/" })}
           aria-label="Back"
