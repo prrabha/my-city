@@ -32,7 +32,7 @@ export function BottomBar() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 safe-bottom">
-      <div className="pointer-events-auto flex w-full max-w-xl items-center gap-2 rounded-4xl glass-bar shadow-bar p-2">
+      <div className="pointer-events-auto flex w-full max-w-xl items-center gap-2 p-2">
         {/* Plus */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
