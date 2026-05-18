@@ -38,7 +38,7 @@ export function BottomBar() {
           <SheetTrigger asChild>
             <button
               aria-label="Create post"
-              className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-foreground"
+              className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
             >
               <Plus className="h-5 w-5" strokeWidth={2.5} />
             </button>

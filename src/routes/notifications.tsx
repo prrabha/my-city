@@ -114,7 +114,7 @@ function NotificationsPage() {
           <Link
             to="/"
             aria-label="Back"
-            className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>

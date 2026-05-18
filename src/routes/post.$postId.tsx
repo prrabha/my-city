@@ -59,7 +59,7 @@ function PostDetail() {
         <button
           onClick={() => history.length > 1 ? history.back() : navigate({ to: "/" })}
           aria-label="Back"
-          className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -67,7 +67,7 @@ function PostDetail() {
         <button
           onClick={onShare}
           aria-label="Share"
-          className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
         >
           <Share2 className="h-5 w-5" />
         </button>
