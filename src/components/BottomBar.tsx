@@ -93,7 +93,7 @@ export function BottomBar() {
           <button
             type="submit"
             aria-label="Search"
-            className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground disabled:opacity-40"
+            className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft disabled:opacity-40"
             disabled={!q.trim()}
           >
             <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
