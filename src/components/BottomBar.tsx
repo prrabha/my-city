@@ -104,7 +104,7 @@ export function BottomBar() {
         <Link
           to="/inbox"
           aria-label="Inbox"
-          className={`tap relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+          className={`tap relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-soft ${
             inboxActive ? "text-primary" : "text-foreground"
           }`}
         >
