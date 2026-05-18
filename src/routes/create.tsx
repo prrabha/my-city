@@ -150,7 +150,7 @@ function CreatePage() {
       <header className="sticky top-0 z-30 flex items-center justify-between px-3 py-3">
         <button
           onClick={() => navigate({ to: "/" })}
-          className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5" />

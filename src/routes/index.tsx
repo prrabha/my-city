@@ -76,7 +76,7 @@ function Home() {
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <button
             aria-label="Profile"
-            className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
           >
             <UserCircle2 className="h-7 w-7" strokeWidth={1.75} />
           </button>
@@ -84,7 +84,7 @@ function Home() {
             <Link
               to="/notifications"
               aria-label="Notifications"
-              className="tap relative flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+              className="tap relative flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
             >
               <Bell className="h-6 w-6" strokeWidth={1.75} />
               {unreadNotifs > 0 && (
@@ -95,7 +95,7 @@ function Home() {
             </Link>
             <button
               aria-label="Menu"
-              className="tap flex h-10 w-10 items-center justify-center rounded-full text-foreground"
+              className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
             >
               <Menu className="h-6 w-6" strokeWidth={1.75} />
             </button>
