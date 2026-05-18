@@ -21,6 +21,8 @@ export function BottomBar() {
     e?.preventDefault();
     const query = q.trim();
     if (!query) return;
+    // Dismiss mobile keyboard
+    (document.activeElement as HTMLElement | null)?.blur?.();
     navigate({ to: "/search", search: { q: query } });
   };
 
@@ -87,6 +89,8 @@ export function BottomBar() {
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
             placeholder="Search local jobs, rent, offers…"
+            type="search"
+            enterKeyHint="search"
             className="h-full w-full bg-transparent px-2 text-sm placeholder:text-muted-foreground focus:outline-none"
             aria-label="Search"
           />
