@@ -21,6 +21,8 @@ export function BottomBar() {
     e?.preventDefault();
     const query = q.trim();
     if (!query) return;
+    // Dismiss mobile keyboard
+    (document.activeElement as HTMLElement | null)?.blur?.();
     navigate({ to: "/search", search: { q: query } });
   };
 
