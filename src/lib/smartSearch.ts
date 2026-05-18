@@ -1,101 +1,71 @@
-// Intelligent natural-language search for the marketplace.
-// Pure client-side: no API calls, no extra deps.
-import { CITIES, type Post, type User, rankPostsForUser } from "./store";
+// Strict intent-based local search: city + category must both match.
+// No fuzzy fallback, no nearby city expansion, no unrelated suggestions.
+import { CITIES, type Post, type User } from "./store";
 
-// Synonym groups → expand any word to its related terms.
-// Each key is the canonical category; values are matchable keywords / SEO terms.
+// Canonical category -> matching keywords (used for both query detection
+// and post-classification so the two sides agree).
 const SYNONYMS: Record<string, string[]> = {
-  jobs: ["job", "jobs", "vacancy", "vacancies", "hiring", "hire", "work", "employment", "career", "careers", "opening", "openings", "recruitment", "salary", "wanted", "staff", "intern", "internship", "freshers", "part time", "full time"],
-  rent_home: ["rent", "rental", "home", "homes", "house", "houses", "flat", "flats", "apartment", "apartments", "pg", "room", "rooms", "1bhk", "2bhk", "3bhk", "studio", "hostel", "lease", "bachelor", "family"],
-  rent_shop: ["shop", "shops", "commercial", "store", "stores", "showroom", "office", "godown", "warehouse", "kirana", "stall"],
-  property: ["land", "lands", "plot", "plots", "open plot", "real estate", "property", "properties", "site", "sites", "acre", "acres", "villa", "farmhouse", "agriculture"],
-  vehicle: ["bike", "bikes", "scooter", "scooty", "car", "cars", "vehicle", "vehicles", "auto", "activa", "honda", "yamaha", "bajaj", "suzuki", "hero", "royal enfield", "bullet", "second hand", "used"],
-  service: ["plumber", "electrician", "carpenter", "mechanic", "service", "services", "repair", "technician", "tutor", "tuition", "maid", "cook", "driver", "painter", "cleaning"],
-  food: ["food", "restaurant", "biryani", "chicken", "tiffin", "meals", "delivery", "broast", "cafe", "tea", "snacks", "catering", "bakery", "cake"],
-  offers: ["offer", "offers", "discount", "sale", "deal", "deals", "combo", "free", "buy one"],
-  electronics: ["mobile", "phone", "iphone", "samsung", "laptop", "tv", "fridge", "ac", "washing machine", "electronics", "headphone", "speaker"],
-  furniture: ["furniture", "sofa", "bed", "table", "chair", "wardrobe", "almirah", "cot"],
+  jobs: ["job", "jobs", "vacancy", "vacancies", "hiring", "hire", "work", "employment", "career", "careers", "opening", "openings", "recruitment", "wanted", "staff", "intern", "internship", "freshers", "part time", "full time", "salary"],
+  rent_home: ["rent house", "rent home", "rental home", "house for rent", "home for rent", "1bhk", "2bhk", "3bhk", "flat", "flats", "apartment", "apartments", "pg ", "hostel", "room for rent", "rooms for rent", "bachelor", "lease home"],
+  rent_shop: ["shop for rent", "shops for rent", "commercial space", "showroom", "office for rent", "godown", "warehouse", "stall for rent", "rent shop", "rent office"],
+  property: ["land", "lands", "plot", "plots", "open plot", "real estate", "property", "properties", "site for sale", "acre", "acres", "villa", "farmhouse", "agriculture land"],
+  vehicle: ["bike", "bikes", "scooter", "scooty", "car", "cars", "vehicle", "vehicles", "auto", "activa", "yamaha", "bajaj", "suzuki", "royal enfield", "bullet", "second hand bike", "used car"],
+  service: ["plumber", "electrician", "carpenter", "mechanic", "repair", "technician", "tutor", "tuition", "maid", "cook", "driver", "painter", "cleaning service"],
+  food: ["restaurant", "restaurants", "biryani", "tiffin", "meals", "food delivery", "broast", "cafe", "snacks", "catering", "bakery", "cake"],
+  events: ["event", "events", "function", "function hall", "wedding", "birthday", "party hall", "dj", "photographer"],
+  electronics: ["mobile", "phone", "iphone", "samsung", "laptop", "tv ", "fridge", "ac ", "washing machine", "electronics", "headphone", "speaker"],
+  furniture: ["furniture", "sofa", "bed ", "wardrobe", "almirah", "cot"],
 };
 
-const NEAR_ME_RE = /\b(near\s*me|nearby|around\s*me|close\s*by|in\s*my\s*area)\b/i;
-const IN_CITY_RE = /\b(in|at|near)\s+([a-z][a-z\s]{2,30})$/i;
+const NEAR_ME_RE = /\b(near\s*me|nearby|around\s*me|close\s*by|in\s*my\s*area|my\s*city)\b/i;
 
 export type ParsedQuery = {
   raw: string;
-  text: string; // query without location/intent words
-  keywords: string[]; // expanded keywords
-  category?: string; // canonical key
-  cityId?: string;
+  text: string;
+  category?: string;
+  cityId?: string;     // explicit city typed by user
   nearMe: boolean;
 };
 
 function normalize(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  return ` ${s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()} `;
 }
 
 export function parseQuery(raw: string): ParsedQuery {
-  const original = raw;
-  let text = normalize(raw);
-  const nearMe = NEAR_me_check(original);
-  if (nearMe) text = text.replace(/\b(near\s*me|nearby|around\s*me|close\s*by|in\s*my\s*area)\b/g, "").trim();
+  const text = normalize(raw);
+  const nearMe = NEAR_ME_RE.test(raw);
 
-  // City detection — match any known city or nearby town in the text
+  // 1) Explicit city match (city name OR nearby town -> canonical city id)
   let cityId: string | undefined;
   for (const c of CITIES) {
-    const hay = ` ${text} `;
-    if (hay.includes(` ${c.name.toLowerCase()} `)) {
-      cityId = c.id;
-      text = text.replace(c.name.toLowerCase(), "").trim();
-      break;
-    }
+    if (text.includes(` ${c.name.toLowerCase()} `)) { cityId = c.id; break; }
     for (const town of c.nearby) {
-      if (hay.includes(` ${town.toLowerCase()} `)) {
-        cityId = c.id;
-        text = text.replace(town.toLowerCase(), "").trim();
-        break;
-      }
+      if (text.includes(` ${town.toLowerCase()} `)) { cityId = c.id; break; }
     }
     if (cityId) break;
   }
-  // "in <city>" tail fallback
-  if (!cityId) {
-    const m = original.match(IN_CITY_RE);
-    if (m) {
-      const candidate = normalize(m[2]);
-      const found = CITIES.find((c) => candidate.includes(c.name.toLowerCase()));
-      if (found) {
-        cityId = found.id;
-        text = text.replace(candidate, "").replace(/\b(in|at|near)\b/g, "").trim();
-      }
-    }
-  }
 
-  // Category + keyword expansion
-  const tokens = text.split(/\s+/).filter(Boolean);
+  // 2) Category detection
   let category: string | undefined;
-  const expanded = new Set<string>(tokens);
   for (const [cat, words] of Object.entries(SYNONYMS)) {
-    const hit = tokens.some((t) => words.includes(t)) ||
-      words.some((w) => w.includes(" ") && text.includes(w));
-    if (hit) {
-      category = category ?? cat;
-      words.forEach((w) => expanded.add(w));
-    }
+    const hit = words.some((w) => {
+      const needle = w.trim();
+      return needle.includes(" ") ? text.includes(` ${needle} `) || text.includes(` ${needle}`) : text.includes(` ${needle} `);
+    });
+    if (hit) { category = cat; break; }
   }
 
-  return {
-    raw,
-    text,
-    keywords: Array.from(expanded),
-    category,
-    cityId,
-    nearMe,
-  };
+  return { raw, text: text.trim(), category, cityId, nearMe };
 }
 
-// Workaround: separate function so the regex can be reused.
-function NEAR_me_check(s: string): boolean {
-  return NEAR_ME_RE.test(s);
+// Classify a post into a canonical category by matching against the same
+// synonyms used for queries. Falls back to post.category when present.
+function postCategory(p: Post): string | undefined {
+  const hay = ` ${(p.category ?? "").toLowerCase()} ${p.caption.toLowerCase()} ${(p.hashtags ?? []).join(" ").toLowerCase()} `;
+  for (const [cat, words] of Object.entries(SYNONYMS)) {
+    if (words.some((w) => hay.includes(w.trim()))) return cat;
+  }
+  return undefined;
 }
 
 export function smartSearch(posts: Post[], raw: string, user: User | null): {
@@ -105,70 +75,29 @@ export function smartSearch(posts: Post[], raw: string, user: User | null): {
   const parsed = parseQuery(raw);
   if (!parsed.raw.trim()) return { parsed, results: [] };
 
-  // Effective city: explicit city > near-me/user city
-  const effectiveCityId = parsed.cityId ?? (parsed.nearMe ? user?.cityId : undefined);
+  // Effective city: explicit typed city > near-me/auto-detected user city
+  const effectiveCityId = parsed.cityId ?? user?.cityId;
 
-  const tokens = parsed.text.split(/\s+/).filter((t) => t && t.length > 1);
+  // STRICT RULE: a category-style query must have a city to resolve against.
+  // If we have neither category nor city, nothing to search for.
+  if (!parsed.category && !parsed.cityId) {
+    return { parsed, results: [] };
+  }
 
-  // Helper: does a post match the detected category?
-  const matchesCategory = (p: Post): boolean => {
-    if (!parsed.category) return true;
-    const catWords = SYNONYMS[parsed.category] ?? [];
-    const hay = `${p.category ?? ""} ${p.caption} ${(p.hashtags ?? []).join(" ")}`.toLowerCase();
-    return catWords.some((w) => hay.includes(w));
-  };
+  const results = posts.filter((p) => {
+    // City gate — mandatory whenever we have one
+    if (effectiveCityId && p.cityId !== effectiveCityId) return false;
 
-  // Hard-filter pool: when user explicitly states a city or category (or
-  // "near me"), only consider posts that match those constraints. This stops
-  // other cities / other categories from leaking into results.
-  const pool = posts.filter((p) => {
-    const cityOk = effectiveCityId ? p.cityId === effectiveCityId : true;
-    const catOk = matchesCategory(p);
-    return cityOk && catOk;
+    // Category gate — mandatory whenever query implies one
+    if (parsed.category) {
+      const pc = postCategory(p);
+      if (pc !== parsed.category) return false;
+    }
+    return true;
   });
 
-  const scored = pool
-    .map((p) => {
-      const tags = Array.isArray(p.hashtags) ? p.hashtags.join(" ") : "";
-      const hay = `${p.caption} ${p.category ?? ""} ${p.authorName} ${p.cityLabel} ${p.area ?? ""} ${tags}`.toLowerCase();
-      let score = 0;
-
-      for (const kw of parsed.keywords) {
-        if (!kw) continue;
-        if (hay.includes(kw)) score += kw.length > 3 ? 3 : 1;
-      }
-      for (const tok of tokens) {
-        if (hay.includes(tok)) score += 2;
-      }
-      if (parsed.category) score += 6; // already passed category gate
-      if (effectiveCityId && p.cityId === effectiveCityId) score += 5;
-      if (parsed.nearMe && user?.area && (p.area ?? "").toLowerCase() === user.area.toLowerCase()) {
-        score += 4;
-      }
-      // Recency tiebreaker
-      score += Math.min(2, (Date.now() - p.createdAt) < 1000 * 60 * 60 * 24 * 7 ? 1 : 0);
-
-      return { p, score };
-    })
-    .sort((a, b) => b.score - a.score)
-    .map((x) => x.p);
-
-  let results = scored;
-
-  // If a category+city query yields nothing, keep the strict pool (city+cat)
-  // ordered by recency rather than falling back to unrelated posts.
-  if (!results.length && (effectiveCityId || parsed.category)) {
-    results = rankPostsForUser(pool, user);
-  }
-
-  // Pure free-text query (no city, no category): fall back to loose keyword scan
-  if (!results.length && !effectiveCityId && !parsed.category && parsed.text) {
-    results = posts.filter((p) => {
-      const hay = `${p.caption} ${p.category ?? ""} ${p.cityLabel} ${p.area ?? ""} ${(p.hashtags ?? []).join(" ")}`.toLowerCase();
-      return tokens.some((t) => hay.includes(t)) || hay.includes(parsed.text);
-    });
-  }
-
+  // Newest first; no fallback, no nearby expansion, no unrelated results.
+  results.sort((a, b) => b.createdAt - a.createdAt);
   return { parsed, results };
 }
 
@@ -179,5 +108,5 @@ export const SMART_SUGGESTIONS = [
   "Lands or open plots in Vijayawada",
   "Bike for sale near me",
   "Electrician near me",
-  "Offers in Khammam",
+  "Restaurants in Khammam",
 ];
