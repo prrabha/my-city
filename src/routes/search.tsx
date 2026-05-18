@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Search as SearchIcon, Sparkles, MapPin } from "lucide-react";
 import { PostCard } from "@/components/PostCard";
 import { usePosts, useUser, CITIES } from "@/lib/store";
