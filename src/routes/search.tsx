@@ -57,7 +57,7 @@ function SearchPage() {
       <header className="sticky top-0 z-30">
         <div className="mx-auto flex max-w-xl items-center gap-2 px-3 py-3">
           <button
-            onClick={() => navigate({ to: "/" })}
+            onClick={goBack}
             aria-label="Back"
             className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
           >
@@ -66,17 +66,26 @@ function SearchPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              const trimmed = query.trim();
               setDebounced(query);
+              // Dismiss mobile keyboard after submitting search
+              inputRef.current?.blur();
+              // Reflect current query in the URL so back navigation works correctly
+              if (trimmed !== q) {
+                navigate({ to: "/search", search: { q: trimmed }, replace: true });
+              }
             }}
             className="flex h-11 flex-1 items-center rounded-full bg-secondary pl-4 pr-1"
           >
             <SearchIcon className="h-4 w-4 text-muted-foreground" />
             <input
-              autoFocus
+              ref={inputRef}
+              autoFocus={!q}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Try: jobs near me, rent shops Warangal…"
               enterKeyHint="search"
+              type="search"
               className="h-full w-full bg-transparent px-2 text-sm focus:outline-none"
             />
             <button
