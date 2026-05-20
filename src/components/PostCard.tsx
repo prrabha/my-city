@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle, Map as MapIcon } from "lucide-react";
+import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle } from "lucide-react";
+import { GoogleMapsPinIcon, googleMapsUrlForPost } from "@/components/GoogleMapsPinIcon";
 import {
   type Post,
   togglePostLike,
