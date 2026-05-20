@@ -90,13 +90,15 @@ function PostDetail() {
                 <MapPin className="h-3 w-3" /> {post.cityLabel} · {timeAgo(post.createdAt)} ago
               </div>
             </div>
-            <button
-              onClick={() => togglePostLike(post.id)}
-              className="tap ml-auto flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-sm"
+            <a
+              href={googleMapsUrlForPost(post)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open in Google Maps"
+              className="tap ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-secondary hover:bg-secondary/80 active:bg-secondary/70"
             >
-              <Heart className={`h-4 w-4 ${post.liked ? "fill-destructive text-destructive" : ""}`} />
-              {post.likes}
-            </button>
+              <GoogleMapsPinIcon className="h-5 w-5 text-foreground" />
+            </a>
           </div>
 
           {post.category && (
