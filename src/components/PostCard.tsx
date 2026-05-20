@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, Share2, MapPin, Bookmark, BadgeCheck } from "lucide-react";
+import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle, Map as MapIcon } from "lucide-react";
 import {
   type Post,
   togglePostLike,
@@ -74,31 +74,47 @@ export function PostCard({ post }: { post: Post }) {
 
       {/* Actions */}
       <div className="flex items-center justify-between px-4 pt-3">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button
             aria-label="Like"
             onClick={() => togglePostLike(post.id)}
-            className="tap flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
           >
             <Heart
               className={`h-5 w-5 ${post.liked ? "fill-destructive text-destructive" : ""}`}
             />
           </button>
+          <Link
+            to="/post/$postId"
+            params={{ postId: post.id }}
+            aria-label="Comment"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </Link>
           <button
             aria-label="Share"
             onClick={onShare}
-            className="tap flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
           >
             <Share2 className="h-5 w-5" />
           </button>
+          <button
+            aria-label="Save"
+            onClick={() => togglePostSave(post.id)}
+            className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
+          >
+            <Bookmark className={`h-5 w-5 ${post.saved ? "fill-foreground" : ""}`} />
+          </button>
         </div>
-        <button
-          aria-label="Save"
-          onClick={() => togglePostSave(post.id)}
-          className="tap flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary"
+        <Link
+          to="/post/$postId/map"
+          params={{ postId: post.id }}
+          aria-label="Open map"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
         >
-          <Bookmark className={`h-5 w-5 ${post.saved ? "fill-foreground" : ""}`} />
-        </button>
+          <MapIcon className="h-5 w-5" />
+        </Link>
       </div>
 
       {/* Caption */}
