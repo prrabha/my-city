@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { KeyboardAwareFocus } from "@/components/KeyboardAwareFocus";
+import { LiveTypingPreview } from "@/components/LiveTypingPreview";
 
 import appCss from "../styles.css?url";
 
@@ -80,6 +81,7 @@ function RootComponent() {
     <>
       <KeyboardAwareFocus />
       <Outlet />
+      <LiveTypingPreview />
       <Toaster position="top-center" />
     </>
   );
