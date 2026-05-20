@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle, Map as MapIcon } from "lucide-react";
+import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle } from "lucide-react";
+import { GoogleMapsPinIcon, googleMapsUrlForPost } from "@/components/GoogleMapsPinIcon";
 import {
   type Post,
   togglePostLike,
@@ -107,14 +108,15 @@ export function PostCard({ post }: { post: Post }) {
             <Bookmark className={`h-5 w-5 ${post.saved ? "fill-foreground" : ""}`} />
           </button>
         </div>
-        <Link
-          to="/post/$postId/map"
-          params={{ postId: post.id }}
-          aria-label="Open map"
-          className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
+        <a
+          href={googleMapsUrlForPost(post)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open in Google Maps"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary active:bg-secondary/80"
         >
-          <MapIcon className="h-5 w-5" />
-        </Link>
+          <GoogleMapsPinIcon className="h-5 w-5 text-foreground" />
+        </a>
       </div>
 
       {/* Caption */}
