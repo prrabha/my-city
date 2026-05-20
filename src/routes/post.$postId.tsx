@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Heart, Share2, Map as MapIcon } from "lucide-react";
+import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Share2, Map as MapIcon } from "lucide-react";
+import { GoogleMapsPinIcon, googleMapsUrlForPost } from "@/components/GoogleMapsPinIcon";
 import {
   startChatWith,
-  togglePostLike,
   usePosts,
   timeAgo,
   postImages,
