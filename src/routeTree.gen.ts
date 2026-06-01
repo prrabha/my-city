@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -22,6 +23,11 @@ import { Route as PostPostIdMapRouteImport } from './routes/post.$postId.map'
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRouteWithChildren
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRouteWithChildren
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRouteWithChildren
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/create'
     | '/notifications'
+    | '/profile'
     | '/search'
     | '/inbox/$chatId'
     | '/post/$postId'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/create'
     | '/notifications'
+    | '/profile'
     | '/search'
     | '/inbox/$chatId'
     | '/post/$postId'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/create'
     | '/notifications'
+    | '/profile'
     | '/search'
     | '/inbox/$chatId'
     | '/post/$postId'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
   NotificationsRoute: typeof NotificationsRoute
+  ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   InboxChatIdRoute: typeof InboxChatIdRoute
   PostPostIdRoute: typeof PostPostIdRouteWithChildren
@@ -153,6 +166,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -231,6 +251,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
   NotificationsRoute: NotificationsRoute,
+  ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   InboxChatIdRoute: InboxChatIdRoute,
   PostPostIdRoute: PostPostIdRouteWithChildren,
