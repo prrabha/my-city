@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -20,6 +21,11 @@ import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 import { Route as InboxChatIdRouteImport } from './routes/inbox.$chatId'
 import { Route as PostPostIdMapRouteImport } from './routes/post.$postId.map'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRouteWithChildren
   '/inbox/': typeof InboxIndexRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRouteWithChildren
   '/inbox': typeof InboxIndexRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/inbox/$chatId': typeof InboxChatIdRoute
   '/post/$postId': typeof PostPostIdRouteWithChildren
   '/inbox/': typeof InboxIndexRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/search'
+    | '/settings'
     | '/inbox/$chatId'
     | '/post/$postId'
     | '/inbox/'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/search'
+    | '/settings'
     | '/inbox/$chatId'
     | '/post/$postId'
     | '/inbox'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/search'
+    | '/settings'
     | '/inbox/$chatId'
     | '/post/$postId'
     | '/inbox/'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
   InboxChatIdRoute: typeof InboxChatIdRoute
   PostPostIdRoute: typeof PostPostIdRouteWithChildren
   InboxIndexRoute: typeof InboxIndexRoute
@@ -161,6 +174,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
@@ -253,6 +273,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
   InboxChatIdRoute: InboxChatIdRoute,
   PostPostIdRoute: PostPostIdRouteWithChildren,
   InboxIndexRoute: InboxIndexRoute,
