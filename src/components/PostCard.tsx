@@ -88,6 +88,7 @@ export function PostCard({ post }: { post: Post }) {
           <Link
             to="/post/$postId"
             params={{ postId: post.id }}
+            search={{ focus: "comment" }}
             aria-label="Comment"
             className="tap flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary"
           >

@@ -1,17 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Share2, Map as MapIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Share2, Map as MapIcon, Send } from "lucide-react";
 import { GoogleMapsPinIcon, googleMapsUrlForPost } from "@/components/GoogleMapsPinIcon";
 import {
   startChatWith,
   usePosts,
   timeAgo,
   postImages,
+  usePostComments,
+  addPostComment,
 } from "@/lib/store";
 import { ImageCarousel } from "@/components/ImageCarousel";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/post/$postId")({
   head: () => ({ meta: [{ title: "Post — Loka" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    focus: s.focus === "comment" ? ("comment" as const) : undefined,
+  }),
   component: PostDetail,
   notFoundComponent: () => (
     <div className="flex min-h-dvh items-center justify-center">Post not found</div>
@@ -20,9 +26,24 @@ export const Route = createFileRoute("/post/$postId")({
 
 function PostDetail() {
   const { postId } = Route.useParams();
+  const { focus } = Route.useSearch();
   const navigate = useNavigate();
   const posts = usePosts();
   const post = posts.find((p) => p.id === postId);
+  const comments = usePostComments(postId);
+  const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const commentsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (focus === "comment") {
+      const t = setTimeout(() => {
+        inputRef.current?.focus();
+        commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+      return () => clearTimeout(t);
+    }
+  }, [focus]);
 
   if (!post) {
     return (
@@ -53,8 +74,15 @@ function PostDetail() {
     }
   };
 
+  const submitComment = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!text.trim()) return;
+    addPostComment(post.id, text);
+    setText("");
+  };
+
   return (
-    <div className="min-h-dvh bg-background pb-28">
+    <div className="min-h-dvh bg-background pb-40">
       <header className="sticky top-0 z-30 flex items-center justify-between px-3 py-3">
         <button
           onClick={() => history.length > 1 ? history.back() : navigate({ to: "/" })}
@@ -147,24 +175,71 @@ function PostDetail() {
               <span className="text-xs font-medium text-primary">View →</span>
             </Link>
           )}
+
+          {/* Comments */}
+          <div ref={commentsRef} className="mt-6">
+            <h2 className="text-sm font-bold">
+              Comments <span className="text-muted-foreground">({comments.length})</span>
+            </h2>
+            <div className="mt-3 space-y-3">
+              {comments.length === 0 && (
+                <p className="text-sm text-muted-foreground">Be the first to comment.</p>
+              )}
+              {comments.map((c) => (
+                <div key={c.id} className="flex gap-3">
+                  <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
+                    {c.author.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1 rounded-2xl bg-secondary px-3 py-2">
+                    <div className="text-xs font-semibold">{c.author}</div>
+                    <p className="text-sm leading-snug">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       </main>
 
-      {/* Sticky actions */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/85 px-3 py-3 backdrop-blur-xl safe-bottom">
-        <div className="mx-auto flex max-w-xl items-center gap-2">
-          <a
-            href={`tel:+91${post.authorMobile}`}
-            className="tap flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-sm font-semibold text-primary-foreground shadow-glow"
-          >
-            <Phone className="h-5 w-5" /> Call now
-          </a>
-          <button
-            onClick={onMessage}
-            className="tap flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-semibold"
-          >
-            <MessageCircle className="h-5 w-5" /> Message
-          </button>
+      {/* Sticky actions + comment composer */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 px-3 py-2 backdrop-blur-xl safe-bottom"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + var(--kb-inset, 0px))" }}
+      >
+        <div className="mx-auto max-w-xl space-y-2">
+          <form onSubmit={submitComment} className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Add a comment…"
+              enterKeyHint="send"
+              inputMode="text"
+              className="h-11 flex-1 rounded-full border border-border bg-card px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <button
+              type="submit"
+              aria-label="Send comment"
+              disabled={!text.trim()}
+              className="tap flex h-11 w-11 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow disabled:opacity-40"
+            >
+              <Send className="h-5 w-5" />
+            </button>
+          </form>
+          <div className="flex items-center gap-2">
+            <a
+              href={`tel:+91${post.authorMobile}`}
+              className="tap flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-sm font-semibold text-primary-foreground shadow-glow"
+            >
+              <Phone className="h-5 w-5" /> Call
+            </a>
+            <button
+              onClick={onMessage}
+              className="tap flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-semibold"
+            >
+              <MessageCircle className="h-5 w-5" /> Message
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -74,12 +74,13 @@ function Home() {
       {/* Top bar */}
       <header className="sticky top-0 z-30">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
-          <button
+          <Link
+            to="/profile"
             aria-label="Profile"
             className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
           >
             <UserCircle2 className="h-7 w-7" strokeWidth={1.75} />
-          </button>
+          </Link>
           <div className="flex items-center gap-1">
             <Link
               to="/notifications"
@@ -93,12 +94,13 @@ function Home() {
                 </span>
               )}
             </Link>
-            <button
+            <Link
+              to="/settings"
               aria-label="Menu"
               className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
             >
               <Menu className="h-6 w-6" strokeWidth={1.75} />
-            </button>
+            </Link>
           </div>
         </div>
       </header>
