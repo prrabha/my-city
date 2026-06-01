@@ -231,6 +231,36 @@ export function togglePostSave(id: string) {
   savePosts(posts);
 }
 
+// ---------- Comments ----------
+export type PostComment = { id: string; author: string; text: string; ts: number };
+const KEY_COMMENTS = "loka:comments";
+type CommentsMap = Record<string, PostComment[]>;
+
+export function getComments(postId: string): PostComment[] {
+  const map = read<CommentsMap>(KEY_COMMENTS, {});
+  return map[postId] ?? [];
+}
+export function addPostComment(postId: string, text: string, author = "You") {
+  const t = text.trim();
+  if (!t) return;
+  const map = read<CommentsMap>(KEY_COMMENTS, {});
+  const list = map[postId] ?? [];
+  const next: PostComment = { id: `c_${Date.now()}`, author, text: t, ts: Date.now() };
+  map[postId] = [...list, next];
+  write(KEY_COMMENTS, map);
+  window.dispatchEvent(new Event("loka:comments"));
+}
+export function usePostComments(postId: string) {
+  const [list, set] = useState<PostComment[]>([]);
+  useEffect(() => {
+    set(getComments(postId));
+    const fn = () => set(getComments(postId));
+    window.addEventListener("loka:comments", fn);
+    return () => window.removeEventListener("loka:comments", fn);
+  }, [postId]);
+  return list;
+}
+
 export function getChats(): Chat[] {
   const stored = read<Chat[] | null>(KEY_CHATS, null);
   if (stored && stored.length) return stored;
