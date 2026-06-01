@@ -51,6 +51,8 @@ export type Post = {
   caption: string;
   hashtags?: string[];
   category?: string;
+  title?: string;
+  price?: number;
   createdAt: number;
   likes: number;
   liked?: boolean;
