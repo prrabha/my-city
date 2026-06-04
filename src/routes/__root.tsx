@@ -46,6 +46,12 @@ export const Route = createRootRoute({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Loka — Local Social Marketplace" },
+      { name: "description", content: "This app will help to do marketing for your brands and business. And it can helps unemployed people to find near by jobs ." },
+      { property: "og:description", content: "This app will help to do marketing for your brands and business. And it can helps unemployed people to find near by jobs ." },
+      { name: "twitter:description", content: "This app will help to do marketing for your brands and business. And it can helps unemployed people to find near by jobs ." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1970209f-fe36-45ab-9c9b-ec977df54c85" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/1970209f-fe36-45ab-9c9b-ec977df54c85" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
