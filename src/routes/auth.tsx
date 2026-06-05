@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Phone, User as UserIcon, MapPin, ShieldCheck, ArrowRight } from "lucide-react";
 import { z } from "zod";
 import { CITIES, getUser, setUser } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -15,10 +16,11 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+// Accept Indian mobile numbers (10 digits, starts 6-9). Stored/sent as E.164 +91XXXXXXXXXX.
 const mobileSchema = z
   .string()
   .trim()
-  .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile");
+  .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number");
 const otpSchema = z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit OTP");
 const nameSchema = z.string().trim().min(2, "Name too short").max(60);
 
@@ -30,31 +32,86 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [cityId, setCityId] = useState(CITIES[0].id);
   const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
-    if (getUser()) navigate({ to: "/" });
+    // If a Supabase session already exists AND a local profile exists, skip auth.
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled && data.session && getUser()) navigate({ to: "/" });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  const e164 = (m: string) => `+91${m}`;
 
   const sendOtp = async () => {
     const ok = mobileSchema.safeParse(mobile);
     if (!ok.success) return toast.error(ok.error.issues[0].message);
     setSending(true);
-    await new Promise((r) => setTimeout(r, 700));
-    setSending(false);
-    toast.success("OTP sent — try 123456");
-    setStep("otp");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: e164(mobile),
+      });
+      if (error) throw error;
+      toast.success(`OTP sent to +91 ${mobile}`);
+      setStep("otp");
+      setResendIn(45);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not send OTP";
+      toast.error(msg);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const verifyOtp = () => {
+  const verifyOtp = async () => {
     const ok = otpSchema.safeParse(otp);
     if (!ok.success) return toast.error(ok.error.issues[0].message);
-    if (otp !== "123456") return toast.error("Invalid OTP. Use 123456 for demo.");
-    setStep("details");
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: e164(mobile),
+        token: otp,
+        type: "sms",
+      });
+      if (error) throw error;
+      if (!data.session) throw new Error("Verification failed. Try again.");
+      // First-time user? If profile already saved, go straight to feed.
+      const existing = getUser();
+      if (existing && existing.mobile === mobile) {
+        toast.success("Welcome back!");
+        navigate({ to: "/" });
+      } else {
+        setStep("details");
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Invalid or expired OTP";
+      toast.error(msg);
+    } finally {
+      setVerifying(false);
+    }
   };
 
-  const createAccount = () => {
+  const createAccount = async () => {
     const ok = nameSchema.safeParse(name);
     if (!ok.success) return toast.error(ok.error.issues[0].message);
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      toast.error("Session expired. Please verify your number again.");
+      setStep("mobile");
+      return;
+    }
     setUser({ name: name.trim(), mobile, cityId, verified: true });
     toast.success(`Welcome, ${name.split(" ")[0]}!`);
     navigate({ to: "/" });
@@ -83,6 +140,7 @@ function AuthPage() {
                   <span className="pl-1 pr-2 text-sm text-muted-foreground">+91</span>
                   <input
                     inputMode="numeric"
+                    autoComplete="tel-national"
                     maxLength={10}
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
@@ -95,7 +153,7 @@ function AuthPage() {
                 Send OTP
               </PrimaryButton>
               <p className="text-center text-[11px] text-muted-foreground">
-                By continuing you agree to our Terms & Privacy.
+                Standard SMS rates may apply. By continuing you agree to our Terms & Privacy.
               </p>
             </div>
           )}
@@ -109,20 +167,35 @@ function AuthPage() {
               <Field icon={<ShieldCheck className="h-4 w-4" />} label="Enter OTP">
                 <input
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   maxLength={6}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  placeholder="123456"
+                  placeholder="••••••"
                   className="h-11 w-full bg-transparent text-lg font-semibold tracking-[0.4em] focus:outline-none"
                 />
               </Field>
-              <PrimaryButton onClick={verifyOtp}>Verify OTP</PrimaryButton>
-              <button
-                onClick={() => setStep("mobile")}
-                className="w-full text-center text-xs text-muted-foreground"
-              >
-                Change number
-              </button>
+              <PrimaryButton onClick={verifyOtp} loading={verifying}>
+                Verify OTP
+              </PrimaryButton>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <button
+                  onClick={() => {
+                    setOtp("");
+                    setStep("mobile");
+                  }}
+                  className="underline-offset-2 hover:underline"
+                >
+                  Change number
+                </button>
+                <button
+                  onClick={sendOtp}
+                  disabled={resendIn > 0 || sending}
+                  className="disabled:opacity-50"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend OTP"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -196,7 +269,7 @@ function PrimaryButton({
       disabled={loading}
       className="tap inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-base font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
     >
-      {loading ? "Sending…" : children}
+      {loading ? "Please wait…" : children}
     </button>
   );
 }
