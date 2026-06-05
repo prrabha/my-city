@@ -114,7 +114,7 @@ function AuthPage() {
     }
     setUser({ name: name.trim(), mobile, cityId, verified: true });
     toast.success(`Welcome, ${name.split(" ")[0]}!`);
-    navigate({ to: "/" });
+    navigate({ to: "/permissions" });
   };
 
   return (
