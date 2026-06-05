@@ -79,6 +79,16 @@ function SettingsPage() {
         />
       </section>
 
+      {/* App permissions */}
+      <section className="mx-4 mt-5 overflow-hidden rounded-3xl bg-white shadow-soft">
+        <RowLink
+          icon={<Bell className="h-5 w-5 text-orange-500" />}
+          tint="bg-orange-100"
+          label="App Permissions"
+          to="/permissions"
+        />
+      </section>
+
       {/* Support */}
       <section className="mx-4 mt-5 overflow-hidden rounded-3xl bg-white shadow-soft">
         <RowLink
