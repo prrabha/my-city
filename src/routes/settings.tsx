@@ -35,7 +35,12 @@ function SettingsPage() {
     document.documentElement.classList.toggle("dark", next);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
     setUser(null);
     navigate({ to: "/auth" });
   };
