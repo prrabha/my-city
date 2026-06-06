@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { setUser } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Loka" }] }),
@@ -34,7 +35,12 @@ function SettingsPage() {
     document.documentElement.classList.toggle("dark", next);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
     setUser(null);
     navigate({ to: "/auth" });
   };
