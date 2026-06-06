@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Plus, Search, MessageCircle, Camera, Image as ImageIcon, ArrowUp } from "lucide-react";
 import {
@@ -9,6 +9,32 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useUnread } from "@/lib/store";
+import { toast } from "sonner";
+
+function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(String(reader.result));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = String(reader.result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export function BottomBar() {
   const navigate = useNavigate();
@@ -16,12 +42,13 @@ export function BottomBar() {
   const unread = useUnread();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   const onSearch = (e?: FormEvent) => {
     e?.preventDefault();
     const query = q.trim();
     if (!query) return;
-    // Dismiss mobile keyboard
     (document.activeElement as HTMLElement | null)?.blur?.();
     navigate({ to: "/search", search: { q: query } });
   };
@@ -30,12 +57,51 @@ export function BottomBar() {
     if (e.key === "Enter") onSearch();
   };
 
+  const handlePicked = async (
+    e: ChangeEvent<HTMLInputElement>,
+    source: "camera" | "gallery",
+  ) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+    try {
+      const imgs = await Promise.all(files.slice(0, 10).map((f) => compressImage(f)));
+      try {
+        sessionStorage.setItem("loka:pendingImages", JSON.stringify(imgs));
+      } catch {
+        toast.error("Images too large to stage. Try fewer photos.");
+        return;
+      }
+      setOpen(false);
+      navigate({ to: "/create", search: { source } });
+    } catch {
+      toast.error("Couldn't read the selected image");
+    }
+  };
+
   const inboxActive = router.location.pathname.startsWith("/inbox");
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 safe-bottom">
+      {/* Hidden inputs — clicked synchronously from the user-gesture handlers below */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => handlePicked(e, "camera")}
+      />
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handlePicked(e, "gallery")}
+      />
+
       <div className="pointer-events-auto flex w-full max-w-xl items-center gap-2 p-2">
-        {/* Plus */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <button
@@ -51,11 +117,9 @@ export function BottomBar() {
             </SheetHeader>
             <div className="grid grid-cols-2 gap-3 px-2 pt-2">
               <button
+                type="button"
                 className="tap flex flex-col items-center gap-2 rounded-2xl bg-secondary p-6"
-                onClick={() => {
-                  setOpen(false);
-                  navigate({ to: "/create", search: { source: "camera" } });
-                }}
+                onClick={() => cameraRef.current?.click()}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow">
                   <Camera className="h-6 w-6" />
@@ -63,11 +127,9 @@ export function BottomBar() {
                 <span className="text-sm font-medium">Camera</span>
               </button>
               <button
+                type="button"
                 className="tap flex flex-col items-center gap-2 rounded-2xl bg-secondary p-6"
-                onClick={() => {
-                  setOpen(false);
-                  navigate({ to: "/create", search: { source: "gallery" } });
-                }}
+                onClick={() => galleryRef.current?.click()}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow">
                   <ImageIcon className="h-6 w-6" />
@@ -78,7 +140,6 @@ export function BottomBar() {
           </SheetContent>
         </Sheet>
 
-        {/* Search */}
         <form
           onSubmit={onSearch}
           className="relative flex h-11 flex-1 items-center rounded-full bg-secondary pl-4 pr-1"
@@ -104,7 +165,6 @@ export function BottomBar() {
           </button>
         </form>
 
-        {/* Inbox */}
         <Link
           to="/inbox"
           aria-label="Inbox"
