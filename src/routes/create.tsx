@@ -100,6 +100,22 @@ function CreatePage() {
     if (!user) navigate({ to: "/auth" });
   }, [user, navigate]);
 
+  // Pull in images staged from the bottom-bar Camera/Gallery sheet
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("loka:pendingImages");
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) {
+          setImages((prev) => (prev.length ? prev : arr.slice(0, MAX_IMAGES)));
+        }
+        sessionStorage.removeItem("loka:pendingImages");
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
