@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { setUser } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Loka" }] }),
