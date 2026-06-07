@@ -1,6 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, MapPin, Phone, MessageCircle, Share2, Map as MapIcon, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  MapPin,
+  Phone,
+  MessageCircle,
+  Share2,
+  Map as MapIcon,
+  Send,
+  Heart,
+} from "lucide-react";
 import { GoogleMapsPinIcon, googleMapsUrlForPost } from "@/components/GoogleMapsPinIcon";
 import {
   startChatWith,
@@ -9,8 +19,12 @@ import {
   postImages,
   usePostComments,
   addPostComment,
+  toggleLike,
+  incrementShares,
+  useUser,
 } from "@/lib/store";
 import { ImageCarousel } from "@/components/ImageCarousel";
+import { Avatar } from "@/components/Avatar";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/post/$postId")({
@@ -29,11 +43,25 @@ function PostDetail() {
   const { focus } = Route.useSearch();
   const navigate = useNavigate();
   const posts = usePosts();
+  const user = useUser();
   const post = posts.find((p) => p.id === postId);
   const comments = usePostComments(postId);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
+
+  const [liked, setLiked] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [shares, setShares] = useState(0);
+  const [bump, setBump] = useState(false);
+
+  useEffect(() => {
+    if (post) {
+      setLiked(post.liked);
+      setLikes(post.likes);
+      setShares(post.sharesCount);
+    }
+  }, [post?.id, post?.liked, post?.likes, post?.sharesCount]);
 
   useEffect(() => {
     if (focus === "comment") {
@@ -57,28 +85,45 @@ function PostDetail() {
   }
 
   const onMessage = () => {
-    const id = startChatWith(post.authorName, post.cityLabel);
+    const id = startChatWith(post.authorDisplayName, post.cityLabel);
     navigate({ to: "/inbox/$chatId", params: { chatId: id } });
+  };
+
+  const onLike = async () => {
+    const next = !liked;
+    setLiked(next);
+    setLikes((n) => Math.max(0, n + (next ? 1 : -1)));
+    setBump(true);
+    setTimeout(() => setBump(false), 220);
+    const confirmed = await toggleLike(post.id, !next);
+    if (confirmed !== next) {
+      setLiked(confirmed);
+      setLikes((n) => Math.max(0, n + (confirmed ? 1 : -1) - (next ? 1 : -1)));
+    }
   };
 
   const onShare = async () => {
     const url = window.location.href;
     try {
-      if (navigator.share) await navigator.share({ title: post.authorName, text: post.caption, url });
-      else {
+      if (navigator.share) {
+        await navigator.share({ title: post.authorDisplayName, text: post.caption, url });
+      } else {
         await navigator.clipboard.writeText(url);
         toast.success("Link copied");
       }
+      setShares((n) => n + 1);
+      incrementShares(post.id, shares).catch(() => {});
     } catch {
       /* cancelled */
     }
   };
 
-  const submitComment = (e?: React.FormEvent) => {
+  const submitComment = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!text.trim()) return;
-    addPostComment(post.id, text);
+    const t = text;
     setText("");
+    await addPostComment(post.id, t, user?.name ?? "You");
   };
 
   return (
@@ -106,12 +151,10 @@ function PostDetail() {
 
         <section className="px-5 pt-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary text-lg font-semibold text-primary-foreground">
-              {post.authorName.charAt(0)}
-            </div>
+            <Avatar src={post.authorAvatarUrl} name={post.authorDisplayName} size={48} />
             <div>
               <div className="flex items-center gap-1 text-base font-bold">
-                {post.authorName}
+                {post.authorDisplayName}
                 <BadgeCheck className="h-4 w-4 text-primary" />
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -127,6 +170,40 @@ function PostDetail() {
             >
               <GoogleMapsPinIcon className="h-5 w-5 text-foreground" />
             </a>
+          </div>
+
+          {/* Like / Comment / Share bar */}
+          <div className="mt-4 flex items-center gap-1 border-y border-border/60 py-2">
+            <button
+              aria-label={liked ? "Unlike" : "Like"}
+              aria-pressed={liked}
+              onClick={onLike}
+              className="tap flex items-center gap-1.5 rounded-full px-2 py-1.5 hover:bg-secondary"
+            >
+              <Heart
+                className={`h-6 w-6 transition-transform ${bump ? "scale-125" : "scale-100"} ${
+                  liked ? "fill-red-500 text-red-500" : "text-foreground/70"
+                }`}
+                strokeWidth={2}
+              />
+              <span className="min-w-4 text-sm font-semibold tabular-nums">{likes}</span>
+            </button>
+            <button
+              onClick={() => inputRef.current?.focus()}
+              aria-label="Comments"
+              className="tap flex items-center gap-1.5 rounded-full px-2 py-1.5 hover:bg-secondary"
+            >
+              <MessageCircle className="h-6 w-6 text-foreground/70" strokeWidth={2} />
+              <span className="min-w-4 text-sm font-semibold tabular-nums">{comments.length}</span>
+            </button>
+            <button
+              onClick={onShare}
+              aria-label="Share"
+              className="tap flex items-center gap-1.5 rounded-full px-2 py-1.5 hover:bg-secondary"
+            >
+              <Share2 className="h-6 w-6 text-foreground/70" strokeWidth={2} />
+              <span className="min-w-4 text-sm font-semibold tabular-nums">{shares}</span>
+            </button>
           </div>
 
           {post.category && (
@@ -187,9 +264,7 @@ function PostDetail() {
               )}
               {comments.map((c) => (
                 <div key={c.id} className="flex gap-3">
-                  <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
-                    {c.author.charAt(0)}
-                  </div>
+                  <Avatar name={c.author} size={32} />
                   <div className="min-w-0 flex-1 rounded-2xl bg-secondary px-3 py-2">
                     <div className="text-xs font-semibold">{c.author}</div>
                     <p className="text-sm leading-snug">{c.text}</p>

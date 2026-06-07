@@ -2,13 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Camera, MapPin, X, ChevronRight, ChevronDown } from "lucide-react";
 import {
-  addPost,
   cityLabel,
   CITIES,
+  createPost,
   useUser,
-  type Post,
   type GeoPin,
 } from "@/lib/store";
+import { uploadPostImage } from "@/lib/avatar";
 import { MapPicker } from "@/components/MapPicker";
 import { toast } from "sonner";
 
@@ -37,7 +37,7 @@ const CATEGORIES = [
 
 const MAX_IMAGES = 10;
 
-function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<string> {
+function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -50,9 +50,13 @@ function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<stri
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(String(reader.result));
+        if (!ctx) return reject(new Error("canvas"));
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("blob"))),
+          "image/jpeg",
+          quality,
+        );
       };
       img.onerror = reject;
       img.src = String(reader.result);
@@ -76,11 +80,13 @@ function extractKeywords(title: string, description: string, category: string, c
   return Array.from(new Set(words)).slice(0, 10);
 }
 
+type StagedImage = { previewUrl: string; blob: Blob };
+
 function CreatePage() {
   const navigate = useNavigate();
   const user = useUser();
   const { source } = Route.useSearch();
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<StagedImage[]>([]);
   const [category, setCategory] = useState<string>("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -100,22 +106,6 @@ function CreatePage() {
     if (!user) navigate({ to: "/auth" });
   }, [user, navigate]);
 
-  // Pull in images staged from the bottom-bar Camera/Gallery sheet
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("loka:pendingImages");
-      if (raw) {
-        const arr = JSON.parse(raw);
-        if (Array.isArray(arr) && arr.length) {
-          setImages((prev) => (prev.length ? prev : arr.slice(0, MAX_IMAGES)));
-        }
-        sessionStorage.removeItem("loka:pendingImages");
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
@@ -126,7 +116,12 @@ function CreatePage() {
       return;
     }
     try {
-      const out = await Promise.all(files.slice(0, room).map((f) => compressImage(f)));
+      const out = await Promise.all(
+        files.slice(0, room).map(async (f) => {
+          const blob = await compressImage(f);
+          return { previewUrl: URL.createObjectURL(blob), blob } as StagedImage;
+        }),
+      );
       setImages((prev) => [...prev, ...out]);
     } catch {
       toast.error("Couldn't read one of the images");
@@ -134,7 +129,12 @@ function CreatePage() {
     e.target.value = "";
   };
 
-  const removeAt = (i: number) => setImages((prev) => prev.filter((_, j) => j !== i));
+  const removeAt = (i: number) =>
+    setImages((prev) => {
+      const next = prev.filter((_, j) => j !== i);
+      URL.revokeObjectURL(prev[i].previewUrl);
+      return next;
+    });
 
   const upload = async () => {
     if (!user || submitting) return;
@@ -144,26 +144,32 @@ function CreatePage() {
     if (description.trim().length < 4) return toast.error("Add a description");
     setSubmitting(true);
     try {
+      // Upload all images to storage
+      const urls = await Promise.all(images.map((s) => uploadPostImage(s.blob, "image.jpg")));
+      if (urls.some((u) => !u)) {
+        toast.error("Image upload failed. Please try again.");
+        return;
+      }
+      const uploaded = urls as string[];
       const cLabel = cityLabel(cityId);
-      const p: Post = {
-        id: `p_${Date.now()}`,
+      const postId = await createPost({
         authorName: user.name,
-        authorMobile: user.mobile,
+        caption: `${title.trim()}\n\n${description.trim()}`,
+        title: title.trim(),
+        category,
+        price: price ? Number(price) : undefined,
         cityId,
         cityLabel: geo?.area ? `${geo.area}, ${cLabel}` : cLabel,
         area: geo?.area ?? user.area,
-        image: images[0],
-        images,
-        caption: `${title.trim()}\n\n${description.trim()}`,
         hashtags: keywords,
-        category,
-        title: title.trim(),
-        price: price ? Number(price) : undefined,
-        createdAt: Date.now(),
-        likes: 0,
         geo: geo ?? undefined,
-      };
-      addPost(p);
+        coverImage: uploaded[0],
+        images: uploaded,
+      });
+      if (!postId) {
+        toast.error("Could not publish post");
+        return;
+      }
       toast.success("🚀 Ad published!");
       navigate({ to: "/" });
     } finally {
@@ -218,7 +224,7 @@ function CreatePage() {
                   key={i}
                   className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-muted"
                 >
-                  <img src={src} alt={`p-${i}`} className="h-full w-full object-cover" />
+                  <img src={src.previewUrl} alt={`p-${i}`} className="h-full w-full object-cover" />
                   {i === 0 && (
                     <span className="absolute left-1 top-1 rounded bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                       COVER

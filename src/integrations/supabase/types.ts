@@ -14,9 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
+      post_comments: {
+        Row: {
+          author_name: string
+          created_at: string
+          id: string
+          post_id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          author_name: string
+          created_at?: string
+          id?: string
+          post_id: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
         Row: {
           created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          area: string | null
+          author_name: string
+          caption: string
+          category: string | null
+          city_id: string | null
+          city_label: string
+          comments_count: number
+          cover_image: string
+          created_at: string
+          geo: Json | null
+          hashtags: string[]
+          id: string
+          images: string[]
+          likes_count: number
+          price: number | null
+          shares_count: number
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          author_name: string
+          caption: string
+          category?: string | null
+          city_id?: string | null
+          city_label: string
+          comments_count?: number
+          cover_image: string
+          created_at?: string
+          geo?: Json | null
+          hashtags?: string[]
+          id?: string
+          images?: string[]
+          likes_count?: number
+          price?: number | null
+          shares_count?: number
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: string | null
+          author_name?: string
+          caption?: string
+          category?: string | null
+          city_id?: string | null
+          city_label?: string
+          comments_count?: number
+          cover_image?: string
+          created_at?: string
+          geo?: Json | null
+          hashtags?: string[]
+          id?: string
+          images?: string[]
+          likes_count?: number
+          price?: number | null
+          shares_count?: number
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
           full_name: string
           id: string
           updated_at: string
@@ -24,7 +156,9 @@ export type Database = {
           username: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           full_name: string
           id?: string
           updated_at?: string
@@ -32,7 +166,9 @@ export type Database = {
           username: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
+          display_name?: string | null
           full_name?: string
           id?: string
           updated_at?: string
