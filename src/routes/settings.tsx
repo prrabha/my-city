@@ -11,7 +11,9 @@ import {
   LogOut,
   ChevronRight,
 } from "lucide-react";
-import { setUser } from "@/lib/store";
+import { setUser, useUser } from "@/lib/store";
+import { Avatar } from "@/components/Avatar";
+import { useMyProfile } from "@/lib/avatar";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings")({
@@ -21,6 +23,8 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const navigate = useNavigate();
+  const user = useUser();
+  const { profile } = useMyProfile();
   const [dark, setDark] = useState(false);
   const [notif, setNotif] = useState(true);
 
@@ -45,6 +49,8 @@ function SettingsPage() {
     navigate({ to: "/auth" });
   };
 
+  const displayName = profile?.displayName || user?.name || "Guest";
+
   return (
     <div className="min-h-dvh bg-[#f5f0e6] pb-24">
       <header className="sticky top-0 z-30 flex items-center gap-3 px-3 py-3">
@@ -55,7 +61,10 @@ function SettingsPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-lg font-bold">Settings</h1>
+        <h1 className="text-lg font-bold flex-1">Settings</h1>
+        <Link to="/profile" aria-label="Profile" className="tap rounded-full ring-2 ring-white">
+          <Avatar src={profile?.avatarUrl} name={displayName} size={32} />
+        </Link>
       </header>
 
       {/* Preferences */}

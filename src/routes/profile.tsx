@@ -1,6 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ChevronRight, UserRound, MapPin, Mailbox, Heart } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowLeft, ChevronRight, UserRound, MapPin, Mailbox, Heart, Camera } from "lucide-react";
 import { useUser, usePosts } from "@/lib/store";
+import { Avatar } from "@/components/Avatar";
+import { useMyProfile, uploadAvatar } from "@/lib/avatar";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — Loka" }] }),
@@ -11,12 +15,35 @@ function ProfilePage() {
   const navigate = useNavigate();
   const user = useUser();
   const posts = usePosts();
-  const myPosts = user ? posts.filter((p) => p.authorName === user.name) : [];
+  const { profile, refresh } = useMyProfile();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const myPosts = profile ? posts.filter((p) => p.userId === profile.userId) : [];
   const saved = posts.filter((p) => p.saved);
 
-  const name = user?.name ?? "Guest";
+  const name = profile?.displayName || user?.name || "Guest";
   const city = user?.cityId ? user.cityId.charAt(0).toUpperCase() + user.cityId.slice(1) : "—";
-  const initial = name.charAt(0).toUpperCase();
+
+  const onPickPhoto = () => fileRef.current?.click();
+
+  const onPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      if (!url) {
+        toast.error("Could not upload photo");
+        return;
+      }
+      await refresh();
+      toast.success("Profile photo updated");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const items = [
     { label: "Edit Profile", icon: <UserRound className="h-5 w-5 text-blue-500" />, tint: "bg-blue-50", to: "/profile" },
@@ -38,14 +65,39 @@ function ProfilePage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <button className="tap absolute right-4 top-4 rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold">
+        <button
+          onClick={onPickPhoto}
+          className="tap absolute right-4 top-4 rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold"
+        >
           Edit
         </button>
 
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onPhotoChange}
+        />
+
         <div className="mt-3 flex items-center gap-4">
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 text-5xl font-bold ring-4 ring-white/30">
-            {initial}
-          </div>
+          <button
+            type="button"
+            onClick={onPickPhoto}
+            disabled={uploading}
+            aria-label="Change profile photo"
+            className="relative inline-block rounded-full ring-4 ring-white/30"
+          >
+            <Avatar src={profile?.avatarUrl} name={name} size={96} />
+            <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-orange-600 shadow-soft ring-2 ring-orange-500">
+              <Camera className="h-4 w-4" />
+            </span>
+            {uploading && (
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-xs font-semibold text-white">
+                …
+              </span>
+            )}
+          </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-3xl font-extrabold leading-tight">{name}</h1>
             <p className="mt-1 flex items-center gap-1 text-sm text-white/90">

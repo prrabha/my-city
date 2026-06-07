@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { Bell, Menu, UserCircle2, X } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import { BottomBar } from "@/components/BottomBar";
 import { PostCard } from "@/components/PostCard";
 import { LocationGate } from "@/components/LocationGate";
 import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from "@/lib/store";
+import { Avatar } from "@/components/Avatar";
+import { useMyProfile } from "@/lib/avatar";
 import catShop from "@/assets/cat-shop.png";
 import catHome from "@/assets/cat-home.png";
 import catJobs from "@/assets/cat-jobs.png";
@@ -47,6 +49,7 @@ function Home() {
   const navigate = useNavigate();
   const posts = usePosts();
   const unreadNotifs = useUnreadNotifs();
+  const { profile } = useMyProfile();
   const { cat } = Route.useSearch();
 
   useEffect(() => {
@@ -67,6 +70,7 @@ function Home() {
   const activeCat = cat ? CATEGORIES.find((c) => c.key === cat) : null;
 
   if (!user) return null;
+  const displayName = profile?.displayName || user.name;
 
   return (
     <div className="min-h-dvh bg-background pb-32">
@@ -77,9 +81,9 @@ function Home() {
           <Link
             to="/profile"
             aria-label="Profile"
-            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
+            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft overflow-hidden"
           >
-            <UserCircle2 className="h-7 w-7" strokeWidth={1.75} />
+            <Avatar src={profile?.avatarUrl} name={displayName} size={32} />
           </Link>
           <div className="flex items-center gap-1">
             <Link
