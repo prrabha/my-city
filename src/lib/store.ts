@@ -1,10 +1,6 @@
-// Lightweight client store for the demo: auth, posts, chats. Persists to localStorage.
+// App store: user (localStorage profile), chats, notifs, and Supabase-backed posts/comments.
 import { useEffect, useState, useCallback } from "react";
-import marketImg from "@/assets/feed-market.jpg";
-import bikeImg from "@/assets/feed-bike.jpg";
-import roomImg from "@/assets/feed-room.jpg";
-import electricianImg from "@/assets/feed-electrician.jpg";
-import chickenImg from "@/assets/feed-chicken.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 export type City = {
   id: string;
@@ -27,7 +23,7 @@ export type User = {
   cityId: string;
   mobile: string;
   verified?: boolean;
-  area?: string; // locality, e.g. "Wyra"
+  area?: string;
   locationGranted?: boolean;
 };
 
@@ -41,13 +37,16 @@ export type GeoPin = {
 
 export type Post = {
   id: string;
+  userId: string;
   authorName: string;
   authorMobile: string;
+  authorAvatarUrl: string | null;
+  authorDisplayName: string;
   cityId: string;
   cityLabel: string;
   area?: string;
-  image: string; // primary/cover image (kept for back-compat)
-  images?: string[]; // optional multi-image gallery
+  image: string;
+  images?: string[];
   caption: string;
   hashtags?: string[];
   category?: string;
@@ -55,8 +54,10 @@ export type Post = {
   price?: number;
   createdAt: number;
   likes: number;
-  liked?: boolean;
-  saved?: boolean;
+  commentsCount: number;
+  sharesCount: number;
+  liked: boolean;
+  saved: boolean;
   geo?: GeoPin;
 };
 
@@ -72,7 +73,7 @@ export type Notification = {
   body: string;
   ts: number;
   read: boolean;
-  link?: string; // app path to open
+  link?: string;
   image?: string;
 };
 
@@ -93,9 +94,9 @@ export type Chat = {
 };
 
 const KEY_USER = "loka:user";
-const KEY_POSTS = "loka:posts";
 const KEY_CHATS = "loka:chats";
 const KEY_NOTIFS = "loka:notifs";
+const KEY_SAVED = "loka:saved"; // map of postId -> true
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -111,69 +112,294 @@ function write<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-const SEED_POSTS: Post[] = [
-  {
-    id: "p1",
-    authorName: "Ravi Kumar",
-    authorMobile: "9000000001",
-    cityId: "khammam",
-    cityLabel: "Khammam",
-    image: marketImg,
-    caption: "Fresh vegetables at wholesale price 🍅 Visit our shop near bus stand. Open 6 AM – 10 PM.",
-    category: "offers",
-    createdAt: Date.now() - 1000 * 60 * 22,
-    likes: 124,
-  },
-  {
-    id: "p2",
-    authorName: "Sai Teja",
-    authorMobile: "9000000002",
-    cityId: "vijayawada",
-    cityLabel: "Vijayawada",
-    image: bikeImg,
-    caption: "Honda Activa 6G for sale. 2022 model, single owner, 12,000 km. Price ₹62,000 (negotiable).",
-    category: "bike sale",
-    createdAt: Date.now() - 1000 * 60 * 60 * 3,
-    likes: 56,
-  },
-  {
-    id: "p3",
-    authorName: "Lakshmi Devi",
-    authorMobile: "9000000003",
-    cityId: "khammam",
-    cityLabel: "Wyra, Khammam",
-    image: roomImg,
-    caption: "Single room for rent near college. Furnished, attached bath, ₹4,500/month. Bachelors welcome.",
-    category: "rent house",
-    createdAt: Date.now() - 1000 * 60 * 60 * 8,
-    likes: 31,
-  },
-  {
-    id: "p4",
-    authorName: "Mahesh Electricals",
-    authorMobile: "9000000004",
-    cityId: "khammam",
-    cityLabel: "Khammam",
-    image: electricianImg,
-    caption: "Certified electrician available 24/7. Wiring, fan, AC, inverter — call anytime.",
-    category: "plumber",
-    createdAt: Date.now() - 1000 * 60 * 60 * 14,
-    likes: 88,
-  },
-  {
-    id: "p5",
-    authorName: "Hot Chick Center",
-    authorMobile: "9000000005",
-    cityId: "vijayawada",
-    cityLabel: "Vijayawada",
-    image: chickenImg,
-    caption: "Sunday Special! Chicken broast combo @ ₹199 only. Free home delivery within 5 km.",
-    category: "offers",
-    createdAt: Date.now() - 1000 * 60 * 60 * 26,
-    likes: 212,
-  },
-];
+// ---------------- User ----------------
+export function getUser(): User | null {
+  return read<User | null>(KEY_USER, null);
+}
+export function setUser(u: User | null) {
+  if (u) write(KEY_USER, u);
+  else if (typeof window !== "undefined") localStorage.removeItem(KEY_USER);
+  window.dispatchEvent(new Event("loka:user"));
+}
+export function useUser() {
+  const [user, set] = useState<User | null>(null);
+  useEffect(() => {
+    set(getUser());
+    const fn = () => set(getUser());
+    window.addEventListener("loka:user", fn);
+    return () => window.removeEventListener("loka:user", fn);
+  }, []);
+  return user;
+}
 
+// ---------------- Saved (local) ----------------
+function getSavedMap(): Record<string, boolean> {
+  return read<Record<string, boolean>>(KEY_SAVED, {});
+}
+export function togglePostSave(id: string) {
+  const map = getSavedMap();
+  map[id] = !map[id];
+  if (!map[id]) delete map[id];
+  write(KEY_SAVED, map);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("loka:saved"));
+}
+export function isSaved(id: string): boolean {
+  return !!getSavedMap()[id];
+}
+
+// ---------------- Posts (Supabase) ----------------
+type PostRow = {
+  id: string;
+  user_id: string;
+  author_name: string;
+  caption: string;
+  title: string | null;
+  category: string | null;
+  price: number | null;
+  city_id: string | null;
+  city_label: string;
+  area: string | null;
+  cover_image: string;
+  images: string[];
+  hashtags: string[];
+  geo: unknown;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  created_at: string;
+};
+
+type ProfileRow = {
+  user_id: string;
+  display_name: string | null;
+  full_name: string;
+  username: string;
+  avatar_url: string | null;
+};
+
+function rowToPost(
+  row: PostRow,
+  profile: ProfileRow | undefined,
+  likedIds: Set<string>,
+  savedMap: Record<string, boolean>,
+): Post {
+  const displayName = profile?.display_name || profile?.full_name || row.author_name;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    authorName: displayName,
+    authorMobile: "",
+    authorAvatarUrl: profile?.avatar_url ?? null,
+    authorDisplayName: displayName,
+    cityId: row.city_id ?? "",
+    cityLabel: row.city_label,
+    area: row.area ?? undefined,
+    image: row.cover_image,
+    images: row.images?.length ? row.images : [row.cover_image],
+    caption: row.caption,
+    hashtags: row.hashtags ?? [],
+    category: row.category ?? undefined,
+    title: row.title ?? undefined,
+    price: row.price ?? undefined,
+    createdAt: new Date(row.created_at).getTime(),
+    likes: row.likes_count,
+    commentsCount: row.comments_count,
+    sharesCount: row.shares_count,
+    liked: likedIds.has(row.id),
+    saved: !!savedMap[row.id],
+    geo: (row.geo as GeoPin | null) ?? undefined,
+  };
+}
+
+async function fetchPostsFromDb(): Promise<Post[]> {
+  const { data: rows, error } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error || !rows) return [];
+
+  const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
+  const profilesMap = new Map<string, ProfileRow>();
+  if (userIds.length) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, full_name, username, avatar_url")
+      .in("user_id", userIds);
+    (profs ?? []).forEach((p) => profilesMap.set(p.user_id, p as ProfileRow));
+  }
+
+  // Get current user's likes
+  const { data: sess } = await supabase.auth.getSession();
+  const myId = sess.session?.user?.id;
+  const likedIds = new Set<string>();
+  if (myId && rows.length) {
+    const { data: likes } = await supabase
+      .from("post_likes")
+      .select("post_id")
+      .eq("user_id", myId)
+      .in("post_id", rows.map((r) => r.id));
+    (likes ?? []).forEach((l) => likedIds.add(l.post_id));
+  }
+
+  const savedMap = getSavedMap();
+  return rows.map((r) => rowToPost(r as PostRow, profilesMap.get(r.user_id), likedIds, savedMap));
+}
+
+export function usePosts() {
+  const [posts, set] = useState<Post[]>([]);
+
+  const refresh = useCallback(async () => {
+    const next = await fetchPostsFromDb();
+    set(next);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const onSaved = () => {
+      const savedMap = getSavedMap();
+      set((prev) => prev.map((p) => ({ ...p, saved: !!savedMap[p.id] })));
+    };
+    const onPosts = () => refresh();
+    window.addEventListener("loka:saved", onSaved);
+    window.addEventListener("loka:posts", onPosts);
+
+    // Realtime: refetch on any change to posts or likes
+    const channel = supabase
+      .channel("posts-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "post_likes" }, () => refresh())
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("loka:saved", onSaved);
+      window.removeEventListener("loka:posts", onPosts);
+      supabase.removeChannel(channel);
+    };
+  }, [refresh]);
+
+  return posts;
+}
+
+export type CreatePostInput = {
+  caption: string;
+  title?: string;
+  category?: string;
+  price?: number;
+  cityId: string;
+  cityLabel: string;
+  area?: string;
+  hashtags?: string[];
+  geo?: GeoPin;
+  coverImage: string;
+  images: string[];
+  authorName: string;
+};
+
+export async function createPost(input: CreatePostInput): Promise<string | null> {
+  const { data: sess } = await supabase.auth.getSession();
+  const userId = sess.session?.user?.id;
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({
+      user_id: userId,
+      author_name: input.authorName,
+      caption: input.caption,
+      title: input.title ?? null,
+      category: input.category ?? null,
+      price: input.price ?? null,
+      city_id: input.cityId,
+      city_label: input.cityLabel,
+      area: input.area ?? null,
+      cover_image: input.coverImage,
+      images: input.images,
+      hashtags: input.hashtags ?? [],
+      geo: input.geo ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return null;
+  window.dispatchEvent(new Event("loka:posts"));
+  return data.id;
+}
+
+export async function toggleLike(postId: string, currentlyLiked: boolean): Promise<boolean> {
+  const { data: sess } = await supabase.auth.getSession();
+  const userId = sess.session?.user?.id;
+  if (!userId) return currentlyLiked;
+  if (currentlyLiked) {
+    const { error } = await supabase.from("post_likes").delete().match({ post_id: postId, user_id: userId });
+    if (error) return currentlyLiked;
+    return false;
+  } else {
+    const { error } = await supabase.from("post_likes").insert({ post_id: postId, user_id: userId });
+    if (error) return currentlyLiked;
+    return true;
+  }
+}
+
+export async function incrementShares(postId: string, current: number): Promise<void> {
+  await supabase.from("posts").update({ shares_count: current + 1 }).eq("id", postId);
+}
+
+// ---------------- Comments (Supabase) ----------------
+export type PostComment = { id: string; author: string; text: string; ts: number };
+
+async function fetchComments(postId: string): Promise<PostComment[]> {
+  const { data, error } = await supabase
+    .from("post_comments")
+    .select("id, author_name, text, created_at")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  return data.map((c) => ({
+    id: c.id,
+    author: c.author_name,
+    text: c.text,
+    ts: new Date(c.created_at).getTime(),
+  }));
+}
+
+export async function addPostComment(postId: string, text: string, author = "You") {
+  const t = text.trim();
+  if (!t) return;
+  const { data: sess } = await supabase.auth.getSession();
+  const userId = sess.session?.user?.id;
+  if (!userId) return;
+  await supabase.from("post_comments").insert({
+    post_id: postId,
+    user_id: userId,
+    author_name: author,
+    text: t,
+  });
+}
+
+export function usePostComments(postId: string) {
+  const [list, set] = useState<PostComment[]>([]);
+  useEffect(() => {
+    let cancel = false;
+    fetchComments(postId).then((c) => !cancel && set(c));
+    const channel = supabase
+      .channel(`comments-${postId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_comments", filter: `post_id=eq.${postId}` },
+        async () => {
+          const c = await fetchComments(postId);
+          if (!cancel) set(c);
+        },
+      )
+      .subscribe();
+    return () => {
+      cancel = true;
+      supabase.removeChannel(channel);
+    };
+  }, [postId]);
+  return list;
+}
+
+// ---------------- Chats (local) ----------------
 const SEED_CHATS: Chat[] = [
   {
     id: "c1",
@@ -187,81 +413,7 @@ const SEED_CHATS: Chat[] = [
       { id: "m3", fromMe: false, text: "Can I see it tomorrow evening?", ts: Date.now() - 1000 * 60 * 9 },
     ],
   },
-  {
-    id: "c2",
-    peerName: "Lakshmi Devi",
-    peerCity: "Wyra, Khammam",
-    unread: 0,
-    lastTs: Date.now() - 1000 * 60 * 60 * 2,
-    messages: [
-      { id: "m1", fromMe: true, text: "Is the room still free?", ts: Date.now() - 1000 * 60 * 60 * 2 },
-    ],
-  },
 ];
-
-export function getUser(): User | null {
-  return read<User | null>(KEY_USER, null);
-}
-export function setUser(u: User | null) {
-  if (u) write(KEY_USER, u);
-  else if (typeof window !== "undefined") localStorage.removeItem(KEY_USER);
-  window.dispatchEvent(new Event("loka:user"));
-}
-
-export function getPosts(): Post[] {
-  const stored = read<Post[] | null>(KEY_POSTS, null);
-  if (stored && stored.length) return stored;
-  write(KEY_POSTS, SEED_POSTS);
-  return SEED_POSTS;
-}
-export function savePosts(posts: Post[]) {
-  write(KEY_POSTS, posts);
-  window.dispatchEvent(new Event("loka:posts"));
-}
-export function addPost(p: Post) {
-  const posts = [p, ...getPosts()];
-  savePosts(posts);
-}
-export function togglePostLike(id: string) {
-  const posts = getPosts().map((p) =>
-    p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p,
-  );
-  savePosts(posts);
-}
-export function togglePostSave(id: string) {
-  const posts = getPosts().map((p) => (p.id === id ? { ...p, saved: !p.saved } : p));
-  savePosts(posts);
-}
-
-// ---------- Comments ----------
-export type PostComment = { id: string; author: string; text: string; ts: number };
-const KEY_COMMENTS = "loka:comments";
-type CommentsMap = Record<string, PostComment[]>;
-
-export function getComments(postId: string): PostComment[] {
-  const map = read<CommentsMap>(KEY_COMMENTS, {});
-  return map[postId] ?? [];
-}
-export function addPostComment(postId: string, text: string, author = "You") {
-  const t = text.trim();
-  if (!t) return;
-  const map = read<CommentsMap>(KEY_COMMENTS, {});
-  const list = map[postId] ?? [];
-  const next: PostComment = { id: `c_${Date.now()}`, author, text: t, ts: Date.now() };
-  map[postId] = [...list, next];
-  write(KEY_COMMENTS, map);
-  window.dispatchEvent(new Event("loka:comments"));
-}
-export function usePostComments(postId: string) {
-  const [list, set] = useState<PostComment[]>([]);
-  useEffect(() => {
-    set(getComments(postId));
-    const fn = () => set(getComments(postId));
-    window.addEventListener("loka:comments", fn);
-    return () => window.removeEventListener("loka:comments", fn);
-  }, [postId]);
-  return list;
-}
 
 export function getChats(): Chat[] {
   const stored = read<Chat[] | null>(KEY_CHATS, null);
@@ -301,35 +453,6 @@ export function markChatRead(chatId: string) {
   const chats = getChats().map((c) => (c.id === chatId ? { ...c, unread: 0 } : c));
   saveChats(chats);
 }
-
-export function cityLabel(cityId: string): string {
-  return CITIES.find((c) => c.id === cityId)?.name ?? cityId;
-}
-
-// React hooks — initialize empty/null on first render so SSR & client match,
-// then hydrate from localStorage inside an effect.
-export function useUser() {
-  const [user, set] = useState<User | null>(null);
-  useEffect(() => {
-    set(getUser());
-    const fn = () => set(getUser());
-    window.addEventListener("loka:user", fn);
-    return () => window.removeEventListener("loka:user", fn);
-  }, []);
-  return user;
-}
-
-export function usePosts() {
-  const [posts, set] = useState<Post[]>([]);
-  useEffect(() => {
-    set(getPosts());
-    const fn = () => set(getPosts());
-    window.addEventListener("loka:posts", fn);
-    return () => window.removeEventListener("loka:posts", fn);
-  }, []);
-  return posts;
-}
-
 export function useChats() {
   const [chats, set] = useState<Chat[]>([]);
   useEffect(() => {
@@ -340,13 +463,16 @@ export function useChats() {
   }, []);
   return chats;
 }
-
 export function useUnread() {
   const chats = useChats();
   return chats.reduce((acc, c) => acc + c.unread, 0);
 }
 
-// ---------- Notifications ----------
+export function cityLabel(cityId: string): string {
+  return CITIES.find((c) => c.id === cityId)?.name ?? cityId;
+}
+
+// ---------------- Notifications ----------------
 const SEED_NOTIFS: Notification[] = [
   {
     id: "n1",
@@ -356,24 +482,6 @@ const SEED_NOTIFS: Notification[] = [
     ts: Date.now() - 1000 * 60 * 9,
     read: false,
     link: "/inbox",
-  },
-  {
-    id: "n2",
-    type: "rent",
-    title: "New rent home near you",
-    body: "Single room ₹4,500/month — Wyra, Khammam",
-    ts: Date.now() - 1000 * 60 * 60 * 2,
-    read: false,
-    link: "/?cat=home",
-  },
-  {
-    id: "n3",
-    type: "nearby",
-    title: "Fresh post in your city",
-    body: "Wholesale vegetables near bus stand",
-    ts: Date.now() - 1000 * 60 * 60 * 8,
-    read: true,
-    link: "/",
   },
 ];
 
@@ -411,7 +519,7 @@ export function useUnreadNotifs() {
   return useNotifs().filter((n) => !n.read).length;
 }
 
-// ---------- Ranking with area awareness ----------
+// ---------------- Ranking ----------------
 export function rankPostsForUser<T extends Post>(posts: T[], user: User | null): T[] {
   if (!user) return posts;
   const city = CITIES.find((c) => c.id === user.cityId);
