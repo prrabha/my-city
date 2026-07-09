@@ -124,10 +124,55 @@ export function setUser(u: User | null) {
 export function useUser() {
   const [user, set] = useState<User | null>(null);
   useEffect(() => {
-    set(getUser());
+    let cancelled = false;
+
+    // Rehydrate the local User from a live Supabase session + profile whenever
+    // localStorage lost it (cross-tab sign-in, cleared storage, etc.). Without
+    // this, an authenticated user can be bounced to /auth from protected pages
+    // like /create.
+    const hydrateFromSession = async () => {
+      const local = getUser();
+      if (local) {
+        if (!cancelled) set(local);
+        return;
+      }
+      const { data: sess } = await supabase.auth.getSession();
+      const authUser = sess.session?.user;
+      if (!authUser) {
+        if (!cancelled) set(null);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, full_name, display_name")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+      const name =
+        profile?.display_name ||
+        profile?.full_name ||
+        profile?.username ||
+        (authUser.email ? authUser.email.split("@")[0] : "User");
+      const rehydrated: User = { name, cityId: "khammam", mobile: "", verified: true };
+      setUser(rehydrated); // persists + fires loka:user
+      if (!cancelled) set(rehydrated);
+    };
+
+    hydrateFromSession();
+
     const fn = () => set(getUser());
     window.addEventListener("loka:user", fn);
-    return () => window.removeEventListener("loka:user", fn);
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        hydrateFromSession();
+      }
+    });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("loka:user", fn);
+      sub.subscription.unsubscribe();
+    };
   }, []);
   return user;
 }
