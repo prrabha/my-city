@@ -106,6 +106,36 @@ function CreatePage() {
     if (!user) navigate({ to: "/auth" });
   }, [user, navigate]);
 
+  // Consume images staged from BottomBar (dataURL strings) and auto-open picker if none.
+  useEffect(() => {
+    let staged: string[] = [];
+    try {
+      const raw = sessionStorage.getItem("loka:pendingImages");
+      if (raw) {
+        staged = JSON.parse(raw) as string[];
+        sessionStorage.removeItem("loka:pendingImages");
+      }
+    } catch {
+      /* ignore */
+    }
+    if (staged.length) {
+      Promise.all(
+        staged.map(async (dataUrl) => {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          return { previewUrl: URL.createObjectURL(blob), blob } as StagedImage;
+        }),
+      )
+        .then((out) => setImages((prev) => [...prev, ...out].slice(0, MAX_IMAGES)))
+        .catch(() => toast.error("Couldn't load selected photos"));
+    } else {
+      // Auto-open the file picker so tapping Camera/Gallery from the bottom bar
+      // takes the user straight into their camera / photo library.
+      setTimeout(() => fileRef.current?.click(), 60);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
