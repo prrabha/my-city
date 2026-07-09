@@ -61,33 +61,51 @@ export function useMyProfile(): { profile: Profile | null; refresh: () => Promis
 export async function uploadAvatar(file: File): Promise<string | null> {
   const { data: sess } = await supabase.auth.getSession();
   const userId = sess.session?.user?.id;
-  if (!userId) return null;
+  if (!userId) {
+    console.error("[uploadAvatar] no session");
+    return null;
+  }
 
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const safeExt = /^(jpg|jpeg|png|webp|gif|heic)$/.test(ext) ? ext : "jpg";
   const path = `${userId}/profile.${safeExt}`;
 
-  // Remove existing avatars for this user (any extension) — best-effort.
-  const { data: existing } = await supabase.storage.from("avatars").list(userId);
-  if (existing && existing.length) {
-    await supabase.storage.from("avatars").remove(existing.map((f) => `${userId}/${f.name}`));
+  // Best-effort cleanup of previous avatars.
+  try {
+    const { data: existing } = await supabase.storage.from("avatars").list(userId);
+    if (existing && existing.length) {
+      await supabase.storage
+        .from("avatars")
+        .remove(existing.map((f) => `${userId}/${f.name}`));
+    }
+  } catch (e) {
+    console.warn("[uploadAvatar] cleanup failed", e);
   }
 
   const { error: upErr } = await supabase.storage
     .from("avatars")
-    .upload(path, file, { contentType: file.type, upsert: true });
-  if (upErr) return null;
+    .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+  if (upErr) {
+    console.error("[uploadAvatar] upload error", upErr);
+    return null;
+  }
 
   const { data: signed, error: signErr } = await supabase.storage
     .from("avatars")
     .createSignedUrl(path, SIGNED_URL_TTL);
-  if (signErr || !signed?.signedUrl) return null;
+  if (signErr || !signed?.signedUrl) {
+    console.error("[uploadAvatar] sign error", signErr);
+    return null;
+  }
 
   const { error: updErr } = await supabase
     .from("profiles")
     .update({ avatar_url: signed.signedUrl })
     .eq("user_id", userId);
-  if (updErr) return null;
+  if (updErr) {
+    console.error("[uploadAvatar] profile update error", updErr);
+    return null;
+  }
 
   if (typeof window !== "undefined") window.dispatchEvent(new Event("loka:profile"));
   return signed.signedUrl;
@@ -96,7 +114,10 @@ export async function uploadAvatar(file: File): Promise<string | null> {
 export async function uploadPostImage(file: Blob, suggestedName = "image.jpg"): Promise<string | null> {
   const { data: sess } = await supabase.auth.getSession();
   const userId = sess.session?.user?.id;
-  if (!userId) return null;
+  if (!userId) {
+    console.error("[uploadPostImage] no session");
+    return null;
+  }
 
   const ext = (suggestedName.split(".").pop() || "jpg").toLowerCase();
   const safeExt = /^(jpg|jpeg|png|webp|gif|heic)$/.test(ext) ? ext : "jpg";
@@ -106,11 +127,15 @@ export async function uploadPostImage(file: Blob, suggestedName = "image.jpg"): 
   const { error: upErr } = await supabase.storage
     .from("post-images")
     .upload(path, file, { contentType, upsert: false });
-  if (upErr) return null;
+  if (upErr) {
+    console.error("[uploadPostImage] upload error", upErr);
+    return null;
+  }
 
-  const { data: signed } = await supabase.storage
+  const { data: signed, error: signErr } = await supabase.storage
     .from("post-images")
     .createSignedUrl(path, SIGNED_URL_TTL);
+  if (signErr) console.error("[uploadPostImage] sign error", signErr);
   return signed?.signedUrl ?? null;
 }
 
