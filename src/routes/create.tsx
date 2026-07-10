@@ -5,8 +5,10 @@ import {
   cityLabel,
   CITIES,
   createPost,
+  hydrateUserFromSession,
   useUser,
   type GeoPin,
+  type User,
 } from "@/lib/store";
 import { uploadPostImage } from "@/lib/avatar";
 import { MapPicker } from "@/components/MapPicker";
@@ -85,6 +87,8 @@ type StagedImage = { previewUrl: string; blob: Blob };
 function CreatePage() {
   const navigate = useNavigate();
   const user = useUser();
+  const [restoredUser, setRestoredUser] = useState<User | null>(null);
+  const currentUser = user ?? restoredUser;
   const { source } = Route.useSearch();
   const [images, setImages] = useState<StagedImage[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -95,6 +99,9 @@ function CreatePage() {
   const [geo, setGeo] = useState<GeoPin | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState("");
+  const [authChecked, setAuthChecked] = useState(false);
+  const [pickerBootstrapped, setPickerBootstrapped] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const keywords = useMemo(
@@ -103,11 +110,39 @@ function CreatePage() {
   );
 
   useEffect(() => {
-    if (!user) navigate({ to: "/auth" });
+    let cancelled = false;
+
+    const checkActiveSession = async () => {
+      if (user) {
+        setRestoredUser(null);
+        setAuthChecked(true);
+        return;
+      }
+
+      const restored = await hydrateUserFromSession();
+      if (cancelled) return;
+
+      if (restored) {
+        setRestoredUser(restored);
+        setAuthChecked(true);
+        return;
+      }
+
+      setAuthChecked(true);
+      navigate({ to: "/auth" });
+    };
+
+    checkActiveSession();
+    return () => {
+      cancelled = true;
+    };
   }, [user, navigate]);
 
   // Consume images staged from BottomBar (dataURL strings) and auto-open picker if none.
   useEffect(() => {
+    if (!currentUser || pickerBootstrapped) return;
+    setPickerBootstrapped(true);
+
     let staged: string[] = [];
     try {
       const raw = sessionStorage.getItem("loka:pendingImages");
@@ -133,8 +168,7 @@ function CreatePage() {
       // takes the user straight into their camera / photo library.
       setTimeout(() => fileRef.current?.click(), 60);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser, pickerBootstrapped]);
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -146,6 +180,7 @@ function CreatePage() {
       return;
     }
     try {
+      toast.loading("Preparing photos…", { id: "post-upload" });
       const out = await Promise.all(
         files.slice(0, room).map(async (f) => {
           const blob = await compressImage(f);
@@ -153,8 +188,9 @@ function CreatePage() {
         }),
       );
       setImages((prev) => [...prev, ...out]);
+      toast.success("Photos ready", { id: "post-upload" });
     } catch {
-      toast.error("Couldn't read one of the images");
+      toast.error("Couldn't read one of the images", { id: "post-upload" });
     }
     e.target.value = "";
   };
@@ -167,47 +203,58 @@ function CreatePage() {
     });
 
   const upload = async () => {
-    if (!user || submitting) return;
+    if (!currentUser || submitting) return;
     if (!images.length) return toast.error("Please add at least one photo");
     if (!category) return toast.error("Please choose a category");
     if (title.trim().length < 3) return toast.error("Add a short title");
     if (description.trim().length < 4) return toast.error("Add a description");
     setSubmitting(true);
+    setSubmitStep("Uploading photos…");
+    toast.loading("Uploading photos…", { id: "post-upload" });
     try {
       // Upload all images to storage
       const urls = await Promise.all(images.map((s) => uploadPostImage(s.blob, "image.jpg")));
       if (urls.some((u) => !u)) {
-        toast.error("Image upload failed. Please try again.");
+        toast.error("Image upload failed. Please try again.", { id: "post-upload" });
         return;
       }
       const uploaded = urls as string[];
       const cLabel = cityLabel(cityId);
+      setSubmitStep("Publishing ad…");
+      toast.loading("Publishing ad…", { id: "post-upload" });
       const postId = await createPost({
-        authorName: user.name,
+        authorName: currentUser.name,
         caption: `${title.trim()}\n\n${description.trim()}`,
         title: title.trim(),
         category,
         price: price ? Number(price) : undefined,
         cityId,
         cityLabel: geo?.area ? `${geo.area}, ${cLabel}` : cLabel,
-        area: geo?.area ?? user.area,
+        area: geo?.area ?? currentUser.area,
         hashtags: keywords,
         geo: geo ?? undefined,
         coverImage: uploaded[0],
         images: uploaded,
       });
       if (!postId) {
-        toast.error("Could not publish post");
+        toast.error("Could not publish post", { id: "post-upload" });
         return;
       }
-      toast.success("🚀 Ad published!");
+      toast.success("🚀 Ad published!", { id: "post-upload" });
       navigate({ to: "/" });
     } finally {
       setSubmitting(false);
+      setSubmitStep("");
     }
   };
 
-  if (!user) return null;
+  if (!currentUser) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background px-6 text-center text-sm font-semibold text-muted-foreground">
+        {authChecked ? "Opening your account…" : "Checking your account…"}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-background pb-32">
@@ -444,7 +491,7 @@ function CreatePage() {
           disabled={submitting}
           className="tap mt-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow disabled:opacity-60"
         >
-          {submitting ? "Publishing…" : "🚀 Publish Ad Now"}
+          {submitting ? submitStep || "Publishing…" : "🚀 Publish Ad Now"}
         </button>
       </div>
     </div>

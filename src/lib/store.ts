@@ -119,7 +119,37 @@ export function getUser(): User | null {
 export function setUser(u: User | null) {
   if (u) write(KEY_USER, u);
   else if (typeof window !== "undefined") localStorage.removeItem(KEY_USER);
-  window.dispatchEvent(new Event("loka:user"));
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("loka:user"));
+}
+
+export async function hydrateUserFromSession(): Promise<User | null> {
+  const local = getUser();
+  if (local) return local;
+
+  const { data: sess } = await supabase.auth.getSession();
+  const authUser = sess.session?.user;
+  if (!authUser) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username, full_name, display_name")
+    .eq("user_id", authUser.id)
+    .maybeSingle();
+
+  const meta = authUser.user_metadata ?? {};
+  const username = typeof meta.username === "string" ? meta.username : undefined;
+  const fullName = typeof meta.full_name === "string" ? meta.full_name : undefined;
+  const name =
+    profile?.display_name ||
+    profile?.full_name ||
+    profile?.username ||
+    fullName ||
+    username ||
+    (authUser.email ? authUser.email.split("@")[0] : "User");
+
+  const rehydrated: User = { name, cityId: CITIES[0].id, mobile: "", verified: true };
+  setUser(rehydrated);
+  return rehydrated;
 }
 export function useUser() {
   const [user, set] = useState<User | null>(null);
@@ -131,30 +161,8 @@ export function useUser() {
     // this, an authenticated user can be bounced to /auth from protected pages
     // like /create.
     const hydrateFromSession = async () => {
-      const local = getUser();
-      if (local) {
-        if (!cancelled) set(local);
-        return;
-      }
-      const { data: sess } = await supabase.auth.getSession();
-      const authUser = sess.session?.user;
-      if (!authUser) {
-        if (!cancelled) set(null);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username, full_name, display_name")
-        .eq("user_id", authUser.id)
-        .maybeSingle();
-      const name =
-        profile?.display_name ||
-        profile?.full_name ||
-        profile?.username ||
-        (authUser.email ? authUser.email.split("@")[0] : "User");
-      const rehydrated: User = { name, cityId: "khammam", mobile: "", verified: true };
-      setUser(rehydrated); // persists + fires loka:user
-      if (!cancelled) set(rehydrated);
+      const next = await hydrateUserFromSession();
+      if (!cancelled) set(next);
     };
 
     hydrateFromSession();
