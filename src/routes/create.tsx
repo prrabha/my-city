@@ -99,6 +99,7 @@ function CreatePage() {
   const [geo, setGeo] = useState<GeoPin | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
   const [pickerBootstrapped, setPickerBootstrapped] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -179,6 +180,7 @@ function CreatePage() {
       return;
     }
     try {
+      toast.loading("Preparing photos…", { id: "post-upload" });
       const out = await Promise.all(
         files.slice(0, room).map(async (f) => {
           const blob = await compressImage(f);
@@ -186,8 +188,9 @@ function CreatePage() {
         }),
       );
       setImages((prev) => [...prev, ...out]);
+      toast.success("Photos ready", { id: "post-upload" });
     } catch {
-      toast.error("Couldn't read one of the images");
+      toast.error("Couldn't read one of the images", { id: "post-upload" });
     }
     e.target.value = "";
   };
@@ -206,15 +209,19 @@ function CreatePage() {
     if (title.trim().length < 3) return toast.error("Add a short title");
     if (description.trim().length < 4) return toast.error("Add a description");
     setSubmitting(true);
+    setSubmitStep("Uploading photos…");
+    toast.loading("Uploading photos…", { id: "post-upload" });
     try {
       // Upload all images to storage
       const urls = await Promise.all(images.map((s) => uploadPostImage(s.blob, "image.jpg")));
       if (urls.some((u) => !u)) {
-        toast.error("Image upload failed. Please try again.");
+        toast.error("Image upload failed. Please try again.", { id: "post-upload" });
         return;
       }
       const uploaded = urls as string[];
       const cLabel = cityLabel(cityId);
+      setSubmitStep("Publishing ad…");
+      toast.loading("Publishing ad…", { id: "post-upload" });
       const postId = await createPost({
         authorName: currentUser.name,
         caption: `${title.trim()}\n\n${description.trim()}`,
@@ -230,13 +237,14 @@ function CreatePage() {
         images: uploaded,
       });
       if (!postId) {
-        toast.error("Could not publish post");
+        toast.error("Could not publish post", { id: "post-upload" });
         return;
       }
-      toast.success("🚀 Ad published!");
+      toast.success("🚀 Ad published!", { id: "post-upload" });
       navigate({ to: "/" });
     } finally {
       setSubmitting(false);
+      setSubmitStep("");
     }
   };
 
@@ -483,7 +491,7 @@ function CreatePage() {
           disabled={submitting}
           className="tap mt-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-base font-bold text-primary-foreground shadow-glow disabled:opacity-60"
         >
-          {submitting ? "Publishing…" : "🚀 Publish Ad Now"}
+          {submitting ? submitStep || "Publishing…" : "🚀 Publish Ad Now"}
         </button>
       </div>
     </div>
