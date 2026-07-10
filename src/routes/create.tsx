@@ -5,8 +5,10 @@ import {
   cityLabel,
   CITIES,
   createPost,
+  hydrateUserFromSession,
   useUser,
   type GeoPin,
+  type User,
 } from "@/lib/store";
 import { uploadPostImage } from "@/lib/avatar";
 import { MapPicker } from "@/components/MapPicker";
@@ -85,6 +87,8 @@ type StagedImage = { previewUrl: string; blob: Blob };
 function CreatePage() {
   const navigate = useNavigate();
   const user = useUser();
+  const [restoredUser, setRestoredUser] = useState<User | null>(null);
+  const currentUser = user ?? restoredUser;
   const { source } = Route.useSearch();
   const [images, setImages] = useState<StagedImage[]>([]);
   const [category, setCategory] = useState<string>("");
@@ -95,6 +99,8 @@ function CreatePage() {
   const [geo, setGeo] = useState<GeoPin | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [pickerBootstrapped, setPickerBootstrapped] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const keywords = useMemo(
@@ -103,11 +109,39 @@ function CreatePage() {
   );
 
   useEffect(() => {
-    if (!user) navigate({ to: "/auth" });
+    let cancelled = false;
+
+    const checkActiveSession = async () => {
+      if (user) {
+        setRestoredUser(null);
+        setAuthChecked(true);
+        return;
+      }
+
+      const restored = await hydrateUserFromSession();
+      if (cancelled) return;
+
+      if (restored) {
+        setRestoredUser(restored);
+        setAuthChecked(true);
+        return;
+      }
+
+      setAuthChecked(true);
+      navigate({ to: "/auth" });
+    };
+
+    checkActiveSession();
+    return () => {
+      cancelled = true;
+    };
   }, [user, navigate]);
 
   // Consume images staged from BottomBar (dataURL strings) and auto-open picker if none.
   useEffect(() => {
+    if (!currentUser || pickerBootstrapped) return;
+    setPickerBootstrapped(true);
+
     let staged: string[] = [];
     try {
       const raw = sessionStorage.getItem("loka:pendingImages");
@@ -133,8 +167,7 @@ function CreatePage() {
       // takes the user straight into their camera / photo library.
       setTimeout(() => fileRef.current?.click(), 60);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser, pickerBootstrapped]);
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -167,7 +200,7 @@ function CreatePage() {
     });
 
   const upload = async () => {
-    if (!user || submitting) return;
+    if (!currentUser || submitting) return;
     if (!images.length) return toast.error("Please add at least one photo");
     if (!category) return toast.error("Please choose a category");
     if (title.trim().length < 3) return toast.error("Add a short title");
@@ -183,14 +216,14 @@ function CreatePage() {
       const uploaded = urls as string[];
       const cLabel = cityLabel(cityId);
       const postId = await createPost({
-        authorName: user.name,
+        authorName: currentUser.name,
         caption: `${title.trim()}\n\n${description.trim()}`,
         title: title.trim(),
         category,
         price: price ? Number(price) : undefined,
         cityId,
         cityLabel: geo?.area ? `${geo.area}, ${cLabel}` : cLabel,
-        area: geo?.area ?? user.area,
+        area: geo?.area ?? currentUser.area,
         hashtags: keywords,
         geo: geo ?? undefined,
         coverImage: uploaded[0],
@@ -207,7 +240,13 @@ function CreatePage() {
     }
   };
 
-  if (!user) return null;
+  if (!currentUser) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background px-6 text-center text-sm font-semibold text-muted-foreground">
+        {authChecked ? "Opening your account…" : "Checking your account…"}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-background pb-32">
