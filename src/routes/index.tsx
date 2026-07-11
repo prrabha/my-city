@@ -8,15 +8,15 @@ import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from 
 import { Avatar } from "@/components/Avatar";
 import { useMyProfile } from "@/lib/avatar";
 import catShop from "@/assets/cat-shop.png";
-import catHome from "@/assets/cat-home.png";
+import catHome from "@/assets/cat-matrimony.png";
 import catJobs from "@/assets/cat-jobs.png";
 import catProperty from "@/assets/cat-property.png";
 
-type CatKey = "shop" | "home" | "jobs" | "property";
+type CatKey = "rent" | "matrimony" | "jobs" | "property";
 
-const CATEGORIES: { key: CatKey; label: string; image: string; keywords: string[] }[] = [
-  { key: "shop", label: "RENT SHOP", image: catShop, keywords: ["shop", "store", "stall"] },
-  { key: "home", label: "RENT HOME", image: catHome, keywords: ["rent house", "rent home", "room", "pg ", "flat", "apartment"] },
+const CATEGORIES: { key: CatKey; label: string; image: string; keywords: string[]; to?: string }[] = [
+  { key: "rent", label: "RENT SHOP / HOME", image: catShop, keywords: ["shop", "store", "stall", "rent house", "rent home", "room", "pg ", "flat", "apartment"] },
+  { key: "matrimony", label: "MATRIMONY", image: catHome, keywords: [], to: "/matrimony" },
   { key: "jobs", label: "JOBS", image: catJobs, keywords: ["job", "hiring", "vacancy", "wanted", "work"] },
   { key: "property", label: "PROPERTYS", image: catProperty, keywords: ["property", "plot", "land", "building", "office"] },
 ];
@@ -122,9 +122,10 @@ function Home() {
             return (
               <button
                 key={c.key}
-                onClick={() =>
-                  navigate({ to: "/", search: active ? {} : { cat: c.key } })
-                }
+                onClick={() => {
+                  if (c.to) { navigate({ to: c.to }); return; }
+                  navigate({ to: "/", search: active ? {} : { cat: c.key } });
+                }}
                 aria-pressed={active}
                 className={`tap group relative flex aspect-square flex-col items-center justify-between overflow-hidden rounded-3xl bg-gradient-primary p-3 text-primary-foreground shadow-card transition-shadow hover:shadow-glow ${
                   active ? "ring-4 ring-primary/40" : ""
