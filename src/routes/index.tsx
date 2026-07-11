@@ -8,7 +8,7 @@ import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from 
 import { Avatar } from "@/components/Avatar";
 import { useMyProfile } from "@/lib/avatar";
 import catShop from "@/assets/cat-shop.png";
-import catHome from "@/assets/cat-home.png";
+import catHome from "@/assets/cat-matrimony.png";
 import catJobs from "@/assets/cat-jobs.png";
 import catProperty from "@/assets/cat-property.png";
 
