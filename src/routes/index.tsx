@@ -122,9 +122,10 @@ function Home() {
             return (
               <button
                 key={c.key}
-                onClick={() =>
-                  navigate({ to: "/", search: active ? {} : { cat: c.key } })
-                }
+                onClick={() => {
+                  if (c.to) { navigate({ to: c.to }); return; }
+                  navigate({ to: "/", search: active ? {} : { cat: c.key } });
+                }}
                 aria-pressed={active}
                 className={`tap group relative flex aspect-square flex-col items-center justify-between overflow-hidden rounded-3xl bg-gradient-primary p-3 text-primary-foreground shadow-card transition-shadow hover:shadow-glow ${
                   active ? "ring-4 ring-primary/40" : ""
