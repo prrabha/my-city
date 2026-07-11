@@ -14,6 +14,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PermissionsRouteImport } from './routes/permissions'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MatrimonyRouteImport } from './routes/matrimony'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -45,6 +46,11 @@ const PermissionsRoute = PermissionsRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatrimonyRoute = MatrimonyRouteImport.update({
+  id: '/matrimony',
+  path: '/matrimony',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/matrimony': typeof MatrimonyRoute
   '/notifications': typeof NotificationsRoute
   '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/matrimony': typeof MatrimonyRoute
   '/notifications': typeof NotificationsRoute
   '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
+  '/matrimony': typeof MatrimonyRoute
   '/notifications': typeof NotificationsRoute
   '/permissions': typeof PermissionsRoute
   '/profile': typeof ProfileRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/matrimony'
     | '/notifications'
     | '/permissions'
     | '/profile'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/matrimony'
     | '/notifications'
     | '/permissions'
     | '/profile'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/create'
+    | '/matrimony'
     | '/notifications'
     | '/permissions'
     | '/profile'
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   CreateRoute: typeof CreateRoute
+  MatrimonyRoute: typeof MatrimonyRoute
   NotificationsRoute: typeof NotificationsRoute
   PermissionsRoute: typeof PermissionsRoute
   ProfileRoute: typeof ProfileRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matrimony': {
+      id: '/matrimony'
+      path: '/matrimony'
+      fullPath: '/matrimony'
+      preLoaderRoute: typeof MatrimonyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -290,6 +310,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CreateRoute: CreateRoute,
+  MatrimonyRoute: MatrimonyRoute,
   NotificationsRoute: NotificationsRoute,
   PermissionsRoute: PermissionsRoute,
   ProfileRoute: ProfileRoute,

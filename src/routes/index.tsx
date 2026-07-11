@@ -12,11 +12,11 @@ import catHome from "@/assets/cat-home.png";
 import catJobs from "@/assets/cat-jobs.png";
 import catProperty from "@/assets/cat-property.png";
 
-type CatKey = "shop" | "home" | "jobs" | "property";
+type CatKey = "rent" | "matrimony" | "jobs" | "property";
 
-const CATEGORIES: { key: CatKey; label: string; image: string; keywords: string[] }[] = [
-  { key: "shop", label: "RENT SHOP", image: catShop, keywords: ["shop", "store", "stall"] },
-  { key: "home", label: "RENT HOME", image: catHome, keywords: ["rent house", "rent home", "room", "pg ", "flat", "apartment"] },
+const CATEGORIES: { key: CatKey; label: string; image: string; keywords: string[]; to?: string }[] = [
+  { key: "rent", label: "RENT SHOP / HOME", image: catShop, keywords: ["shop", "store", "stall", "rent house", "rent home", "room", "pg ", "flat", "apartment"] },
+  { key: "matrimony", label: "MATRIMONY", image: catHome, keywords: [], to: "/matrimony" },
   { key: "jobs", label: "JOBS", image: catJobs, keywords: ["job", "hiring", "vacancy", "wanted", "work"] },
   { key: "property", label: "PROPERTYS", image: catProperty, keywords: ["property", "plot", "land", "building", "office"] },
 ];
