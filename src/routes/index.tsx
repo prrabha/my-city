@@ -2,11 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { Bell, Menu, X } from "lucide-react";
 import { BottomBar } from "@/components/BottomBar";
+import { UploadButton } from "@/components/UploadButton";
 import { PostCard } from "@/components/PostCard";
 import { LocationGate } from "@/components/LocationGate";
 import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from "@/lib/store";
 import { Avatar } from "@/components/Avatar";
 import { useMyProfile } from "@/lib/avatar";
+
 import catShop from "@/assets/cat-shop.png";
 import catHome from "@/assets/cat-matrimony.png";
 import catJobs from "@/assets/cat-jobs.png";
