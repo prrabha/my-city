@@ -180,30 +180,73 @@ export function BottomBar() {
           </SheetContent>
         </Sheet>
 
-        <form
-          onSubmit={onSearch}
-          className="relative flex h-11 flex-1 items-center rounded-full bg-secondary pl-4 pr-1"
+        <div
+          ref={searchContainerRef}
+          className={`relative transition-all duration-300 ease-out ${
+            searchOpen ? "flex-1" : "w-11 flex-none"
+          }`}
         >
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={onKey}
-            placeholder="Search local jobs, rent, offers…"
-            type="search"
-            enterKeyHint="search"
-            className="h-full w-full bg-transparent px-2 text-sm placeholder:text-muted-foreground focus:outline-none"
-            aria-label="Search"
-          />
-          <button
-            type="submit"
-            aria-label="Search"
-            className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft disabled:opacity-40"
-            disabled={!q.trim()}
-          >
-            <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        </form>
+          {!searchOpen && (
+            <button
+              type="button"
+              aria-label="Open search"
+              onClick={() => setSearchOpen(true)}
+              className="tap flex h-11 w-11 items-center justify-center rounded-full bg-white text-foreground shadow-soft animate-fade-in"
+            >
+              <Search className="h-5 w-5" strokeWidth={2} />
+            </button>
+          )}
+          {searchOpen && (
+            <form
+              onSubmit={onSearch}
+              className="relative flex h-11 w-full items-center rounded-full bg-secondary pl-4 pr-1 animate-fade-in"
+            >
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                ref={searchInputRef}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={onKey}
+                placeholder="Search local jobs, rent, offers…"
+                type="search"
+                enterKeyHint="search"
+                className="h-full w-full min-w-0 bg-transparent px-2 text-sm placeholder:text-muted-foreground focus:outline-none"
+                aria-label="Search"
+              />
+              {q ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setQ("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="tap mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-white/60"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.5} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Close search"
+                  onClick={() => setSearchOpen(false)}
+                  className="tap mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-white/60"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.5} />
+                </button>
+              )}
+              <button
+                type="submit"
+                aria-label="Search"
+                className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft disabled:opacity-40"
+                disabled={!q.trim()}
+              >
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+              </button>
+            </form>
+          )}
+        </div>
+
 
         <Link
           to="/inbox"
