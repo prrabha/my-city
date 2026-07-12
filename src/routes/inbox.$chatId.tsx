@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { ArrowLeft, Phone } from "lucide-react";
+import { ArrowLeft, Phone, Video } from "lucide-react";
 import { markChatRead, sendMessage, useChats } from "@/lib/store";
 import { ChatInputBar } from "@/components/ChatInputBar";
 
@@ -67,6 +67,13 @@ function ChatPage() {
         >
           <Phone className="h-5 w-5" />
         </a>
+        <button
+          aria-label="Video call"
+          className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
+          onClick={() => alert("Video call coming soon")}
+        >
+          <Video className="h-5 w-5" />
+        </button>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
