@@ -1,50 +1,14 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Plus, Search, MessageCircle, Camera, Image as ImageIcon, ArrowUp, X } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Search, MessageCircle, LayoutGrid, ArrowUp, X } from "lucide-react";
 import { useUnread } from "@/lib/store";
-import { toast } from "sonner";
-
-function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(String(reader.result));
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = reject;
-      img.src = String(reader.result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 export function BottomBar() {
   const navigate = useNavigate();
   const router = useRouterState();
   const unread = useUnread();
-  const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const galleryRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -97,89 +61,11 @@ export function BottomBar() {
     if (e.key === "Escape") setSearchOpen(false);
   };
 
-  const handlePicked = async (
-    e: ChangeEvent<HTMLInputElement>,
-    source: "camera" | "gallery",
-  ) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (!files.length) return;
-    try {
-      const imgs = await Promise.all(files.slice(0, 10).map((f) => compressImage(f)));
-      try {
-        sessionStorage.setItem("loka:pendingImages", JSON.stringify(imgs));
-      } catch {
-        toast.error("Images too large to stage. Try fewer photos.");
-        return;
-      }
-      setOpen(false);
-      navigate({ to: "/create", search: { source } });
-    } catch {
-      toast.error("Couldn't read the selected image");
-    }
-  };
-
   const inboxActive = router.location.pathname.startsWith("/inbox");
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 safe-bottom">
-      {/* Hidden inputs — clicked synchronously from the user-gesture handlers below */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => handlePicked(e, "camera")}
-      />
-      <input
-        ref={galleryRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => handlePicked(e, "gallery")}
-      />
-
       <div className="pointer-events-auto flex w-full max-w-xl items-center gap-2 p-2">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <button
-              aria-label="Create post"
-              className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
-            >
-              <Plus className="h-5 w-5" strokeWidth={2.5} />
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-3xl border-0 pb-8">
-            <SheetHeader className="pb-2">
-              <SheetTitle className="text-center">Create a post</SheetTitle>
-            </SheetHeader>
-            <div className="grid grid-cols-2 gap-3 px-2 pt-2">
-              <button
-                type="button"
-                className="tap flex flex-col items-center gap-2 rounded-2xl bg-secondary p-6"
-                onClick={() => cameraRef.current?.click()}
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow">
-                  <Camera className="h-6 w-6" />
-                </div>
-                <span className="text-sm font-medium">Camera</span>
-              </button>
-              <button
-                type="button"
-                className="tap flex flex-col items-center gap-2 rounded-2xl bg-secondary p-6"
-                onClick={() => galleryRef.current?.click()}
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow">
-                  <ImageIcon className="h-6 w-6" />
-                </div>
-                <span className="text-sm font-medium">Gallery</span>
-              </button>
-            </div>
-          </SheetContent>
-        </Sheet>
-
         <div
           ref={searchContainerRef}
           className={`relative transition-all duration-300 ease-out ${
@@ -247,6 +133,13 @@ export function BottomBar() {
           )}
         </div>
 
+        <Link
+          to="/"
+          aria-label="Categories"
+          className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
+        >
+          <LayoutGrid className="h-5 w-5" strokeWidth={2} />
+        </Link>
 
         <Link
           to="/inbox"

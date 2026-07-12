@@ -2,11 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { Bell, Menu, X } from "lucide-react";
 import { BottomBar } from "@/components/BottomBar";
+import { UploadButton } from "@/components/UploadButton";
 import { PostCard } from "@/components/PostCard";
 import { LocationGate } from "@/components/LocationGate";
 import { rankPostsForUser, usePosts, useUnreadNotifs, useUser, type Post } from "@/lib/store";
 import { Avatar } from "@/components/Avatar";
 import { useMyProfile } from "@/lib/avatar";
+
 import catShop from "@/assets/cat-shop.png";
 import catHome from "@/assets/cat-matrimony.png";
 import catJobs from "@/assets/cat-jobs.png";
@@ -78,13 +80,16 @@ function Home() {
       {/* Top bar */}
       <header className="sticky top-0 z-30">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
-          <Link
-            to="/profile"
-            aria-label="Profile"
-            className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft overflow-hidden"
-          >
-            <Avatar src={profile?.avatarUrl} name={displayName} size={32} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/profile"
+              aria-label="Profile"
+              className="tap flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-soft overflow-hidden"
+            >
+              <Avatar src={profile?.avatarUrl} name={displayName} size={32} />
+            </Link>
+            <UploadButton variant="circle" />
+          </div>
           <div className="flex items-center gap-1">
             <Link
               to="/notifications"
@@ -108,6 +113,7 @@ function Home() {
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-xl px-4 pt-4">
         {/* Heading */}
