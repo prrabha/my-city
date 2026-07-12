@@ -42,8 +42,46 @@ export function BottomBar() {
   const unread = useUnread();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Focus input when the search expands
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [searchOpen]);
+
+  // Collapse on outside tap
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const el = searchContainerRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [searchOpen]);
+
+  // Collapse on back button (history)
+  useEffect(() => {
+    if (!searchOpen) return;
+    window.history.pushState({ lokaSearch: true }, "");
+    const onPop = () => setSearchOpen(false);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (window.history.state?.lokaSearch) {
+        window.history.back();
+      }
+    };
+  }, [searchOpen]);
 
   const onSearch = (e?: FormEvent) => {
     e?.preventDefault();
@@ -51,10 +89,12 @@ export function BottomBar() {
     if (!query) return;
     (document.activeElement as HTMLElement | null)?.blur?.();
     navigate({ to: "/search", search: { q: query } });
+    setSearchOpen(false);
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") onSearch();
+    if (e.key === "Escape") setSearchOpen(false);
   };
 
   const handlePicked = async (
