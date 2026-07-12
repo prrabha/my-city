@@ -1,6 +1,6 @@
-import { useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Plus, Search, MessageCircle, Camera, Image as ImageIcon, ArrowUp } from "lucide-react";
+import { Plus, Search, MessageCircle, Camera, Image as ImageIcon, ArrowUp, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -42,8 +42,46 @@ export function BottomBar() {
   const unread = useUnread();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Focus input when the search expands
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [searchOpen]);
+
+  // Collapse on outside tap
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const el = searchContainerRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [searchOpen]);
+
+  // Collapse on back button (history)
+  useEffect(() => {
+    if (!searchOpen) return;
+    window.history.pushState({ lokaSearch: true }, "");
+    const onPop = () => setSearchOpen(false);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (window.history.state?.lokaSearch) {
+        window.history.back();
+      }
+    };
+  }, [searchOpen]);
 
   const onSearch = (e?: FormEvent) => {
     e?.preventDefault();
@@ -51,10 +89,12 @@ export function BottomBar() {
     if (!query) return;
     (document.activeElement as HTMLElement | null)?.blur?.();
     navigate({ to: "/search", search: { q: query } });
+    setSearchOpen(false);
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") onSearch();
+    if (e.key === "Escape") setSearchOpen(false);
   };
 
   const handlePicked = async (
@@ -140,30 +180,73 @@ export function BottomBar() {
           </SheetContent>
         </Sheet>
 
-        <form
-          onSubmit={onSearch}
-          className="relative flex h-11 flex-1 items-center rounded-full bg-secondary pl-4 pr-1"
+        <div
+          ref={searchContainerRef}
+          className={`relative transition-all duration-300 ease-out ${
+            searchOpen ? "flex-1" : "w-11 flex-none"
+          }`}
         >
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={onKey}
-            placeholder="Search local jobs, rent, offers…"
-            type="search"
-            enterKeyHint="search"
-            className="h-full w-full bg-transparent px-2 text-sm placeholder:text-muted-foreground focus:outline-none"
-            aria-label="Search"
-          />
-          <button
-            type="submit"
-            aria-label="Search"
-            className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft disabled:opacity-40"
-            disabled={!q.trim()}
-          >
-            <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        </form>
+          {!searchOpen && (
+            <button
+              type="button"
+              aria-label="Open search"
+              onClick={() => setSearchOpen(true)}
+              className="tap flex h-11 w-11 items-center justify-center rounded-full bg-white text-foreground shadow-soft animate-fade-in"
+            >
+              <Search className="h-5 w-5" strokeWidth={2} />
+            </button>
+          )}
+          {searchOpen && (
+            <form
+              onSubmit={onSearch}
+              className="relative flex h-11 w-full items-center rounded-full bg-secondary pl-4 pr-1 animate-fade-in"
+            >
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                ref={searchInputRef}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={onKey}
+                placeholder="Search local jobs, rent, offers…"
+                type="search"
+                enterKeyHint="search"
+                className="h-full w-full min-w-0 bg-transparent px-2 text-sm placeholder:text-muted-foreground focus:outline-none"
+                aria-label="Search"
+              />
+              {q ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setQ("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="tap mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-white/60"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.5} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Close search"
+                  onClick={() => setSearchOpen(false)}
+                  className="tap mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-white/60"
+                >
+                  <X className="h-4 w-4" strokeWidth={2.5} />
+                </button>
+              )}
+              <button
+                type="submit"
+                aria-label="Search"
+                className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft disabled:opacity-40"
+                disabled={!q.trim()}
+              >
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
+              </button>
+            </form>
+          )}
+        </div>
+
 
         <Link
           to="/inbox"
