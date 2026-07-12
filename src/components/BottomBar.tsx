@@ -1,6 +1,6 @@
-import { useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Plus, Search, MessageCircle, Camera, Image as ImageIcon, ArrowUp } from "lucide-react";
+import { Plus, Search, MessageCircle, Camera, Image as ImageIcon, ArrowUp, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
