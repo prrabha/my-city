@@ -58,6 +58,42 @@ export function useMyProfile(): { profile: Profile | null; refresh: () => Promis
   return { profile, refresh };
 }
 
+// Compress an image blob/file down to a JPEG within maxSide px. Keeps avatars/posts
+// small enough that mobile uploads actually finish on slow networks.
+async function compressToJpeg(file: Blob, maxSide: number, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return resolve(file);
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url);
+          blob ? resolve(blob) : resolve(file);
+        },
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image decode failed"));
+    };
+    img.src = url;
+  });
+}
+
 export async function uploadAvatar(file: File): Promise<string | null> {
   const { data: sess } = await supabase.auth.getSession();
   const userId = sess.session?.user?.id;
@@ -66,25 +102,20 @@ export async function uploadAvatar(file: File): Promise<string | null> {
     return null;
   }
 
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const safeExt = /^(jpg|jpeg|png|webp|gif|heic)$/.test(ext) ? ext : "jpg";
-  const path = `${userId}/profile.${safeExt}`;
-
-  // Best-effort cleanup of previous avatars.
+  // Compress before upload so the request finishes even on slow mobile networks.
+  // Skip the "list + remove old files" pre-step — it doubles latency and the
+  // upsert below overwrites the canonical path anyway.
+  let payload: Blob = file;
   try {
-    const { data: existing } = await supabase.storage.from("avatars").list(userId);
-    if (existing && existing.length) {
-      await supabase.storage
-        .from("avatars")
-        .remove(existing.map((f) => `${userId}/${f.name}`));
-    }
+    payload = await compressToJpeg(file, 512, 0.85);
   } catch (e) {
-    console.warn("[uploadAvatar] cleanup failed", e);
+    console.warn("[uploadAvatar] compress failed, using original", e);
   }
 
+  const path = `${userId}/profile.jpg`;
   const { error: upErr } = await supabase.storage
     .from("avatars")
-    .upload(path, file, { contentType: file.type || "image/jpeg", upsert: true });
+    .upload(path, payload, { contentType: "image/jpeg", upsert: true, cacheControl: "3600" });
   if (upErr) {
     console.error("[uploadAvatar] upload error", upErr);
     return null;
@@ -98,9 +129,12 @@ export async function uploadAvatar(file: File): Promise<string | null> {
     return null;
   }
 
+  // Bust CDN cache when overwriting the same path.
+  const avatarUrl = `${signed.signedUrl}${signed.signedUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+
   const { error: updErr } = await supabase
     .from("profiles")
-    .update({ avatar_url: signed.signedUrl })
+    .update({ avatar_url: avatarUrl })
     .eq("user_id", userId);
   if (updErr) {
     console.error("[uploadAvatar] profile update error", updErr);
