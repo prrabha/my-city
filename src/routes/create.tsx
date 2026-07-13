@@ -40,32 +40,37 @@ const CATEGORIES = [
 
 const MAX_IMAGES = 10;
 
-function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<Blob> {
+function compressImage(file: File, maxSide = 1280, quality = 0.78): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("canvas"));
-        ctx.drawImage(img, 0, 0, w, h);
-        canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error("blob"))),
-          "image/jpeg",
-          quality,
-        );
-      };
-      img.onerror = reject;
-      img.src = String(reader.result);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return resolve(file);
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url);
+          blob ? resolve(blob) : resolve(file);
+        },
+        "image/jpeg",
+        quality,
+      );
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("decode"));
+    };
+    img.src = url;
   });
 }
 
