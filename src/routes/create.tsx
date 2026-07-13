@@ -11,6 +11,7 @@ import {
   type User,
 } from "@/lib/store";
 import { uploadPostImage } from "@/lib/avatar";
+import { takePendingImages } from "@/lib/pendingImages";
 import { MapPicker } from "@/components/MapPicker";
 import { toast } from "sonner";
 
