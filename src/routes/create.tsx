@@ -149,26 +149,13 @@ function CreatePage() {
     if (!currentUser || pickerBootstrapped) return;
     setPickerBootstrapped(true);
 
-    let staged: string[] = [];
-    try {
-      const raw = sessionStorage.getItem("loka:pendingImages");
-      if (raw) {
-        staged = JSON.parse(raw) as string[];
-        sessionStorage.removeItem("loka:pendingImages");
-      }
-    } catch {
-      /* ignore */
-    }
+    const staged = takePendingImages();
     if (staged.length) {
-      Promise.all(
-        staged.map(async (dataUrl) => {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          return { previewUrl: URL.createObjectURL(blob), blob } as StagedImage;
-        }),
-      )
-        .then((out) => setImages((prev) => [...prev, ...out].slice(0, MAX_IMAGES)))
-        .catch(() => toast.error("Couldn't load selected photos"));
+      const out = staged.map((blob) => ({
+        previewUrl: URL.createObjectURL(blob),
+        blob,
+      })) as StagedImage[];
+      setImages((prev) => [...prev, ...out].slice(0, MAX_IMAGES));
     } else {
       // Auto-open the file picker so tapping Camera/Gallery from the bottom bar
       // takes the user straight into their camera / photo library.
