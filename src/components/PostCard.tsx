@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle } from "lucide-react";
+import { Heart, Share2, MapPin, Bookmark, BadgeCheck, MessageCircle, Phone } from "lucide-react";
 import { GoogleMapsPinIcon, googleMapsUrlForPost } from "@/components/GoogleMapsPinIcon";
 import {
   type Post,
@@ -167,13 +167,32 @@ export function PostCard({ post }: { post: Post }) {
           <span className="font-semibold">{post.authorDisplayName}</span>{" "}
           <span className="text-foreground/80">{post.caption}</span>
         </p>
-        <Link
-          to="/post/$postId"
-          params={{ postId: post.id }}
-          className="mt-1 inline-block text-xs font-medium text-primary"
-        >
-          Open post →
-        </Link>
+        <div className="mt-2 flex items-center justify-between">
+          <Link
+            to="/post/$postId"
+            params={{ postId: post.id }}
+            className="inline-block text-xs font-medium text-primary"
+          >
+            Open post →
+          </Link>
+          <div className="flex items-center gap-1">
+            <a
+              href={`tel:${post.authorMobile}`}
+              aria-label="Call seller"
+              className="tap flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground"
+            >
+              <Phone className="h-4 w-4" strokeWidth={2} />
+            </a>
+            <Link
+              to="/inbox/$chatId"
+              params={{ chatId: post.userId }}
+              aria-label="Message seller"
+              className="tap flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground"
+            >
+              <MessageCircle className="h-4 w-4" strokeWidth={2} />
+            </Link>
+          </div>
+        </div>
       </div>
     </article>
   );
