@@ -11,6 +11,7 @@ import {
   type User,
 } from "@/lib/store";
 import { uploadPostImage } from "@/lib/avatar";
+import { takePendingImages } from "@/lib/pendingImages";
 import { MapPicker } from "@/components/MapPicker";
 import { toast } from "sonner";
 
@@ -39,32 +40,37 @@ const CATEGORIES = [
 
 const MAX_IMAGES = 10;
 
-function compressImage(file: File, maxSide = 1600, quality = 0.82): Promise<Blob> {
+function compressImage(file: File, maxSide = 1280, quality = 0.78): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("canvas"));
-        ctx.drawImage(img, 0, 0, w, h);
-        canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error("blob"))),
-          "image/jpeg",
-          quality,
-        );
-      };
-      img.onerror = reject;
-      img.src = String(reader.result);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return resolve(file);
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(url);
+          blob ? resolve(blob) : resolve(file);
+        },
+        "image/jpeg",
+        quality,
+      );
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("decode"));
+    };
+    img.src = url;
   });
 }
 
@@ -143,26 +149,13 @@ function CreatePage() {
     if (!currentUser || pickerBootstrapped) return;
     setPickerBootstrapped(true);
 
-    let staged: string[] = [];
-    try {
-      const raw = sessionStorage.getItem("loka:pendingImages");
-      if (raw) {
-        staged = JSON.parse(raw) as string[];
-        sessionStorage.removeItem("loka:pendingImages");
-      }
-    } catch {
-      /* ignore */
-    }
+    const staged = takePendingImages();
     if (staged.length) {
-      Promise.all(
-        staged.map(async (dataUrl) => {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          return { previewUrl: URL.createObjectURL(blob), blob } as StagedImage;
-        }),
-      )
-        .then((out) => setImages((prev) => [...prev, ...out].slice(0, MAX_IMAGES)))
-        .catch(() => toast.error("Couldn't load selected photos"));
+      const out = staged.map((blob) => ({
+        previewUrl: URL.createObjectURL(blob),
+        blob,
+      })) as StagedImage[];
+      setImages((prev) => [...prev, ...out].slice(0, MAX_IMAGES));
     } else {
       // Auto-open the file picker so tapping Camera/Gallery from the bottom bar
       // takes the user straight into their camera / photo library.
