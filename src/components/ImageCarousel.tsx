@@ -67,7 +67,7 @@ export function ImageCarousel({ images, alt = "", className = "", rounded = fals
             {idx + 1}/{total}
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-2 flex items-center justify-center gap-1.5">
-            {images.map((_, i) => (
+            {srcs.map((_, i) => (
               <span
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
