@@ -179,3 +179,29 @@ export function colorFromString(s: string): string {
   const hue = h % 360;
   return `hsl(${hue}, 65%, 55%)`;
 }
+
+// Parse a Supabase storage URL (public or signed) and return { bucket, path }.
+// Handles both `/object/public/<bucket>/<path>` and `/object/sign/<bucket>/<path>` shapes.
+function parseStorageUrl(url: string): { bucket: string; path: string } | null {
+  try {
+    const u = new URL(url);
+    const m = u.pathname.match(/\/storage\/v1\/object\/(?:sign|public)\/([^/]+)\/(.+)$/);
+    if (!m) return null;
+    return { bucket: m[1], path: decodeURIComponent(m[2]) };
+  } catch {
+    return null;
+  }
+}
+
+// Given a possibly-stale signed URL from a Supabase private bucket, mint a fresh
+// signed URL for the same object. Returns null when the URL isn't recognisable
+// as a storage URL or signing failed.
+export async function refreshSignedUrl(url: string): Promise<string | null> {
+  const parsed = parseStorageUrl(url);
+  if (!parsed) return null;
+  const { data, error } = await supabase.storage
+    .from(parsed.bucket)
+    .createSignedUrl(parsed.path, SIGNED_URL_TTL);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
