@@ -177,13 +177,15 @@ export function BottomBar() {
           )}
         </div>
 
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={() => setCatOpen(true)}
           aria-label="Categories"
           className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
         >
           <LayoutGrid className="h-5 w-5" strokeWidth={2} />
-        </Link>
+        </button>
+
 
         <Link
           to="/inbox"
