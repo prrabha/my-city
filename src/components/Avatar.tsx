@@ -1,4 +1,5 @@
-import { colorFromString } from "@/lib/avatar";
+import { useEffect, useState } from "react";
+import { colorFromString, refreshSignedUrl } from "@/lib/avatar";
 
 type Props = {
   src?: string | null;
@@ -9,26 +10,38 @@ type Props = {
 
 export function Avatar({ src, name, size = 40, className = "" }: Props) {
   const initial = (name?.trim()?.[0] ?? "?").toUpperCase();
+  const [currentSrc, setCurrentSrc] = useState<string | null>(src ?? null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src ?? null);
+    setFailed(false);
+  }, [src]);
+
   const style: React.CSSProperties = {
     width: size,
     height: size,
     fontSize: Math.max(12, Math.round(size * 0.42)),
   };
-  if (src) {
+
+  if (currentSrc && !failed) {
     return (
       <img
-        src={src}
+        src={currentSrc}
         alt={name}
         style={style}
         className={`inline-block rounded-full object-cover bg-muted ${className}`}
         loading="lazy"
-        onError={(e) => {
-          // Hide broken image so fallback initial shows via parent restyling if any
-          (e.currentTarget as HTMLImageElement).style.display = "none";
+        onError={async () => {
+          // Attempt to re-sign a stale Supabase storage URL once; fall back to initial.
+          const fresh = await refreshSignedUrl(currentSrc);
+          if (fresh && fresh !== currentSrc) setCurrentSrc(fresh);
+          else setFailed(true);
         }}
       />
     );
   }
+
   const bg = colorFromString(name || "?");
   return (
     <div
