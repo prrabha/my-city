@@ -52,6 +52,7 @@ export function BottomBar() {
   const unread = useUnread();
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
