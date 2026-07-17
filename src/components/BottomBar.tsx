@@ -1,7 +1,50 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Search, MessageCircle, LayoutGrid, ArrowUp, X } from "lucide-react";
+import {
+  Search,
+  MessageCircle,
+  LayoutGrid,
+  ArrowUp,
+  X,
+  Sparkles,
+  Film,
+  HeartPulse,
+  Newspaper,
+  Cpu,
+  Briefcase,
+  ShoppingBag,
+  Trophy,
+  Sun,
+  ShieldAlert,
+  Flame,
+  Landmark,
+  MapPin,
+  ChevronRight,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useUnread } from "@/lib/store";
+
+const EXTRA_CATEGORIES: { label: string; query: string; icon: React.ComponentType<{ className?: string }>; tint: string }[] = [
+  { label: "Lifestyle", query: "lifestyle", icon: Sparkles, tint: "bg-pink-100 text-pink-600" },
+  { label: "Cinema", query: "cinema movies", icon: Film, tint: "bg-purple-100 text-purple-600" },
+  { label: "Health", query: "health", icon: HeartPulse, tint: "bg-red-100 text-red-600" },
+  { label: "Interesting News Facts", query: "interesting news facts", icon: Newspaper, tint: "bg-amber-100 text-amber-600" },
+  { label: "Technology", query: "technology", icon: Cpu, tint: "bg-blue-100 text-blue-600" },
+  { label: "Business", query: "business", icon: Briefcase, tint: "bg-slate-100 text-slate-700" },
+  { label: "Buy / Sell", query: "buy sell", icon: ShoppingBag, tint: "bg-emerald-100 text-emerald-600" },
+  { label: "Sports", query: "sports", icon: Trophy, tint: "bg-orange-100 text-orange-600" },
+  { label: "Spiritual Content", query: "spiritual", icon: Sun, tint: "bg-yellow-100 text-yellow-700" },
+  { label: "Crime", query: "crime", icon: ShieldAlert, tint: "bg-rose-100 text-rose-600" },
+  { label: "Viral Content", query: "viral", icon: Flame, tint: "bg-fuchsia-100 text-fuchsia-600" },
+  { label: "Politics", query: "politics", icon: Landmark, tint: "bg-indigo-100 text-indigo-600" },
+  { label: "State News", query: "state news", icon: MapPin, tint: "bg-teal-100 text-teal-600" },
+];
+
 
 export function BottomBar() {
   const navigate = useNavigate();
@@ -9,6 +52,7 @@ export function BottomBar() {
   const unread = useUnread();
   const [q, setQ] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -133,13 +177,15 @@ export function BottomBar() {
           )}
         </div>
 
-        <Link
-          to="/"
+        <button
+          type="button"
+          onClick={() => setCatOpen(true)}
           aria-label="Categories"
           className="tap flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-foreground shadow-soft"
         >
           <LayoutGrid className="h-5 w-5" strokeWidth={2} />
-        </Link>
+        </button>
+
 
         <Link
           to="/inbox"
@@ -156,6 +202,40 @@ export function BottomBar() {
           )}
         </Link>
       </div>
+
+      <Sheet open={catOpen} onOpenChange={setCatOpen}>
+        <SheetContent
+          side="right"
+          className="w-[86%] max-w-sm border-0 bg-background p-0"
+        >
+          <SheetHeader className="border-b border-border/60 px-5 py-4">
+            <SheetTitle className="text-left text-lg font-bold">Categories</SheetTitle>
+          </SheetHeader>
+          <div className="max-h-[calc(100dvh-64px)] overflow-y-auto px-3 py-3">
+            <ul className="space-y-1.5">
+              {EXTRA_CATEGORIES.map(({ label, query, icon: Icon, tint }) => (
+                <li key={label}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatOpen(false);
+                      navigate({ to: "/search", search: { q: query } });
+                    }}
+                    className="tap flex w-full items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left shadow-soft hover:bg-secondary/60"
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="flex-1 text-sm font-semibold text-foreground">{label}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+
