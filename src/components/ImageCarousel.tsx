@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { refreshSignedUrl } from "@/lib/avatar";
 
 type Props = {
   images: string[];
@@ -10,7 +11,12 @@ type Props = {
 export function ImageCarousel({ images, alt = "", className = "", rounded = false }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [idx, setIdx] = useState(0);
-  const total = images.length;
+  const [srcs, setSrcs] = useState<string[]>(images);
+  const total = srcs.length;
+
+  useEffect(() => {
+    setSrcs(images);
+  }, [images]);
 
   useEffect(() => {
     const el = ref.current;
@@ -25,24 +31,35 @@ export function ImageCarousel({ images, alt = "", className = "", rounded = fals
     return () => el.removeEventListener("scroll", onScroll);
   }, [idx]);
 
+  const handleError = async (i: number) => {
+    const cur = srcs[i];
+    if (!cur) return;
+    const fresh = await refreshSignedUrl(cur);
+    if (fresh && fresh !== cur) {
+      setSrcs((prev) => prev.map((s, j) => (j === i ? fresh : s)));
+    }
+  };
+
   return (
     <div className={`relative w-full ${className}`}>
       <div
         ref={ref}
         className={`no-scrollbar flex aspect-[4/5] w-full snap-x snap-mandatory overflow-x-auto bg-black ${rounded ? "rounded-3xl" : ""}`}
       >
-        {images.map((src, i) => (
-          <div key={i} className="relative h-full w-full flex-shrink-0 snap-center bg-black">
+        {srcs.map((src, i) => (
+          <div key={`${i}-${src}`} className="relative h-full w-full flex-shrink-0 snap-center bg-black">
             <img
               src={src}
               alt={`${alt} ${i + 1}`}
               loading={i === 0 ? "eager" : "lazy"}
               draggable={false}
+              onError={() => handleError(i)}
               className="h-full w-full select-none object-contain"
             />
           </div>
         ))}
       </div>
+
 
       {total > 1 && (
         <>
