@@ -202,6 +202,40 @@ export function BottomBar() {
           )}
         </Link>
       </div>
+
+      <Sheet open={catOpen} onOpenChange={setCatOpen}>
+        <SheetContent
+          side="right"
+          className="w-[86%] max-w-sm border-0 bg-background p-0"
+        >
+          <SheetHeader className="border-b border-border/60 px-5 py-4">
+            <SheetTitle className="text-left text-lg font-bold">Categories</SheetTitle>
+          </SheetHeader>
+          <div className="max-h-[calc(100dvh-64px)] overflow-y-auto px-3 py-3">
+            <ul className="space-y-1.5">
+              {EXTRA_CATEGORIES.map(({ label, query, icon: Icon, tint }) => (
+                <li key={label}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatOpen(false);
+                      navigate({ to: "/search", search: { q: query } });
+                    }}
+                    className="tap flex w-full items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left shadow-soft hover:bg-secondary/60"
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="flex-1 text-sm font-semibold text-foreground">{label}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+
