@@ -206,13 +206,13 @@ export function BottomBar() {
       <Sheet open={catOpen} onOpenChange={setCatOpen}>
         <SheetContent
           side="right"
-          className="w-[86%] max-w-sm border-0 bg-background p-0"
+          className="w-40 border-0 bg-background/95 p-0 shadow-2xl backdrop-blur-sm sm:w-44"
         >
-          <SheetHeader className="border-b border-border/60 px-5 py-4">
-            <SheetTitle className="text-left text-lg font-bold">Categories</SheetTitle>
+          <SheetHeader className="border-b border-border/60 px-3 py-3">
+            <SheetTitle className="text-left text-base font-bold">Categories</SheetTitle>
           </SheetHeader>
-          <div className="max-h-[calc(100dvh-64px)] overflow-y-auto px-3 py-3">
-            <ul className="space-y-1.5">
+          <div className="max-h-[calc(100dvh-52px)] overflow-y-auto px-2 py-2">
+            <ul className="space-y-1">
               {EXTRA_CATEGORIES.map(({ label, query, icon: Icon, tint }) => (
                 <li key={label}>
                   <button
@@ -221,13 +221,12 @@ export function BottomBar() {
                       setCatOpen(false);
                       navigate({ to: "/search", search: { q: query } });
                     }}
-                    className="tap flex w-full items-center gap-3 rounded-2xl bg-white px-3 py-3 text-left shadow-soft hover:bg-secondary/60"
+                    className="tap flex w-full items-center gap-2 rounded-xl bg-white px-2 py-2 text-left shadow-soft hover:bg-secondary/60"
                   >
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
-                      <Icon className="h-5 w-5" />
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tint}`}>
+                      <Icon className="h-4 w-4" />
                     </span>
-                    <span className="flex-1 text-sm font-semibold text-foreground">{label}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    <span className="flex-1 text-xs font-semibold leading-tight text-foreground">{label}</span>
                   </button>
                 </li>
               ))}
